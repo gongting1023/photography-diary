@@ -1,0 +1,306 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0d12;
+  font-family: system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+}
+
+#exhibition-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading */
+#exhibition-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: opacity 0.8s;
+}
+#exhibition-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.ex-spinner {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 14px;
+  border: 1.5px solid rgba(255,255,255,0.04);
+  border-top-color: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  animation: exspin 1.2s linear infinite;
+}
+@keyframes exspin { to { transform: rotate(360deg); } }
+
+/* Museum-style top bar */
+#exhibition-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+}
+#exhibition-top.visible { opacity: 1; }
+
+#exhibition-top .ex-title {
+  color: rgba(255,255,255,0.2);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-weight: 300;
+}
+
+#exhibition-top .ex-controls {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+#exhibition-top .ex-controls button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.2);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
+}
+#exhibition-top .ex-controls button:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Bottom HUD - minimal */
+#exhibition-hud {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#exhibition-hud.visible { opacity: 1; }
+
+#exhibition-hud .ex-hint {
+  color: rgba(255,255,255,0.06);
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 300;
+}
+
+#exhibition-hud .ex-mode-btn {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  pointer-events: auto;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+#exhibition-hud .ex-mode-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+}
+
+/* Floor indicator - gallery style */
+#exhibition-floor {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  z-index: 10;
+  color: rgba(255,255,255,0.05);
+  font-size: 9px;
+  letter-spacing: 2px;
+  pointer-events: none;
+  text-align: right;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+#exhibition-floor.visible { opacity: 1; }
+
+/* Entrance overlay - museum */
+#exhibition-entrance {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: radial-gradient(ellipse at center, #151518 0%, #0a0a0d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 1.2s ease;
+  cursor: pointer;
+}
+#exhibition-entrance.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#exhibition-entrance::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255,180,100,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+#exhibition-entrance .entrance-title {
+  color: rgba(255,255,255,0.12);
+  font-size: 20px;
+  letter-spacing: 8px;
+  font-weight: 200;
+  margin-bottom: 16px;
+  position: relative;
+}
+#exhibition-entrance .entrance-sub {
+  color: rgba(255,255,255,0.04);
+  font-size: 10px;
+  letter-spacing: 4px;
+  font-weight: 300;
+  margin-bottom: 48px;
+  position: relative;
+}
+#exhibition-entrance .entrance-btn {
+  position: relative;
+  padding: 14px 48px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.15);
+  font-size: 10px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.5s;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+#exhibition-entrance .entrance-btn:hover:not(:disabled) {
+  border-color: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.02);
+}
+#exhibition-entrance .entrance-btn:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+@media (max-width: 768px) {
+  #exhibition-top { padding: 10px 14px; }
+  #exhibition-top .ex-title { font-size: 9px; letter-spacing: 2px; }
+  #exhibition-top .ex-controls button { width: 32px; height: 32px; font-size: 12px; }
+  #exhibition-entrance .entrance-title { font-size: 16px; letter-spacing: 4px; }
+  #exhibition-floor { display: none; }
+}
+
+/* Virtual Joystick (mobile only) */
+#joystick-base {
+  display: none;
+  position: fixed;
+  bottom: 48px;
+  left: 48px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  z-index: 20;
+  touch-action: none;
+}
+#joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transition: none;
+  pointer-events: none;
+}
+@media (pointer: coarse) {
+  #joystick-base { display: block; }
+}
+
+/* Mobile HUD */
+#exhibition-hud-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#exhibition-hud-mobile.visible { opacity: 1; }
+#exhibition-hud-mobile .ex-hint-mobile {
+  color: rgba(255,255,255,0.06);
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 300;
+}
+#exhibition-hud-mobile .ex-mode-btn {
+  pointer-events: auto;
+  position: fixed;
+  bottom: 16px;
+  left: 180px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+#exhibition-hud-mobile .ex-mode-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+}

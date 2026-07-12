@@ -1,0 +1,56 @@
+---
+permalink: /exhibition/
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D 摄影展览 - 龚仔的摄影日记</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+    }
+  }
+  </script>
+  <link rel="stylesheet" href="/static/exhibition.css">
+</head>
+<body>
+  <div id="exhibition-entrance">
+    <div class="entrance-title">摄影展览</div>
+    <div class="entrance-sub">Photography Exhibition</div>
+    <button class="entrance-btn" id="entrance-btn">进入展厅</button>
+  </div>
+
+  <div id="exhibition-loading">
+    <div class="ex-spinner"></div>
+    <span>正在布展...</span>
+  </div>
+
+  <div id="exhibition-container"></div>
+
+  <div id="exhibition-top">
+    <span class="ex-title">摄影展览</span>
+    <div class="ex-controls">
+      <button id="ex-close" aria-label="退出" title="退出">✕</button>
+    </div>
+  </div>
+
+  <div id="exhibition-hud">
+    <span class="ex-hint">点击画面 · WASD 行走 · 鼠标环顾</span>
+    <button id="mode-toggle" class="ex-mode-btn" title="切换照明模式">☀ 日间</button>
+  </div>
+
+  <div id="exhibition-hud-mobile">
+    <span class="ex-hint-mobile">左划摇杆行走 · 右划环顾</span>
+    <button id="mode-toggle" class="ex-mode-btn" title="切换照明模式">☀ 日间</button>
+  </div>
+
+  <div id="exhibition-floor" class="visible">1F</div>
+
+  <script type="module" src="/static/exhibition.js"></script>
+</body>
+</html>

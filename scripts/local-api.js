@@ -35,7 +35,7 @@ app.get('/album/*', (req, res) => {
 async function getAllResources() {
   let allResources = [];
   let cursor = null;
-  let page = 1;
+  let pages = 0;
 
   do {
     const result = await cloudinary.api.resources({
@@ -45,10 +45,9 @@ async function getAllResources() {
     });
     allResources = allResources.concat(result.resources || []);
     cursor = result.next_cursor;
-    console.log('  Page ' + page + ': ' + allResources.length + ' resources');
-    page++;
-
-  } while (cursor);
+    pages++;
+    console.log('  Page ' + pages + ': ' + allResources.length + ' resources');
+  } while (cursor && pages < 6);
 
   return allResources;
 }

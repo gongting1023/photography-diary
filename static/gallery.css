@@ -1,0 +1,290 @@
+/* ============================================
+   3D Gallery - Exhibition Mode
+   ============================================ */
+
+.gallery-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #08080a;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.gallery-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- Track ---- */
+.gallery-track {
+  display: flex;
+  height: 100vh;
+  transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: transform;
+}
+
+/* ---- Wall Panel ---- */
+.gallery-panel {
+  flex: 0 0 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ---- Wall ---- */
+.gallery-wall {
+  position: relative;
+  width: 78vw;
+  max-width: 1300px;
+  height: 72vh;
+  max-height: 820px;
+  background: linear-gradient(180deg, #f0ede8 0%, #e5e1db 50%, #ddd9d3 100%);
+  border-radius: 2px;
+  box-shadow:
+    0 30px 120px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.03),
+    inset 0 0 40px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 12px;
+  padding: 28px;
+  transform: perspective(1200px) rotateX(1deg);
+}
+
+/* ---- Wall edges (3D bevel) ---- */
+.gallery-wall::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(90deg, #cac5bf, #ddd9d3);
+  border-radius: 2px 0 0 2px;
+}
+.gallery-wall::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(90deg, #ddd9d3, #cac5bf);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ---- Spotlight ---- */
+.gallery-spotlight {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 180px;
+  background: radial-gradient(ellipse at center top, rgba(255,238,210,0.2) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ---- Photo Frame ---- */
+.gallery-frame {
+  position: relative;
+  background: #fff;
+  padding: 6px;
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.30),
+    0 1px 4px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.04);
+  flex-shrink: 0;
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+.gallery-frame:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.40),
+    0 2px 6px rgba(0,0,0,0.20),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.gallery-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.gallery-frame img.loaded { opacity: 1; }
+
+/* ---- Navigation ---- */
+.gallery-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10001;
+  width: 60px;
+  height: 60px;
+  border: none;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.35);
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.3s;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gallery-nav:hover {
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.7);
+}
+.gallery-nav:active {
+  transform: translateY(-50%) scale(0.92);
+}
+.gallery-nav.prev { left: 16px; }
+.gallery-nav.next { right: 16px; }
+
+/* ---- Album Title ---- */
+.gallery-title {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  color: rgba(255,255,255,0.25);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-align: center;
+  pointer-events: none;
+  font-weight: 300;
+}
+
+/* ---- Counter ---- */
+.gallery-counter {
+  position: fixed;
+  top: 24px;
+  right: 80px;
+  z-index: 10001;
+  color: rgba(255,255,255,0.15);
+  font-size: 12px;
+  letter-spacing: 1px;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Exit ---- */
+.gallery-exit {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10001;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
+}
+.gallery-exit:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* ---- Vignette ---- */
+.gallery-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+.gallery-overlay.active .gallery-vignette { opacity: 1; }
+
+/* ---- Loading ---- */
+.gallery-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10002;
+  color: rgba(255,255,255,0.4);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+.gallery-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255,255,255,0.06);
+  border-top-color: rgba(255,255,255,0.35);
+  border-radius: 50%;
+  animation: gspin 1s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes gspin { to { transform: rotate(360deg); } }
+
+/* ---- Click hint ---- */
+.gallery-hint {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  color: rgba(255,255,255,0.12);
+  font-size: 11px;
+  letter-spacing: 1px;
+  pointer-events: none;
+  opacity: 0;
+  animation: gHint 3s ease 1.5s forwards;
+}
+@keyframes gHint {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---- Empty Wall ---- */
+.gallery-empty {
+  color: rgba(255,255,255,0.2);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .gallery-wall {
+    width: 90vw;
+    height: 60vh;
+    gap: 8px;
+    padding: 16px;
+    transform: none;
+  }
+  .gallery-nav {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+  .gallery-nav.prev { left: 6px; }
+  .gallery-nav.next { right: 6px; }
+  .gallery-title { display: none; }
+  .gallery-counter { top: 16px; right: 70px; font-size: 11px; }
+}
