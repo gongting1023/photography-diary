@@ -25,11 +25,13 @@
   from = "/exhibition/"
   to = "/"
   status = 301
+  force = true
 
 [[redirects]]
   from = "/exhibition"
   to = "/"
   status = 301
+  force = true
 
 [[headers]]
   for = "/*"
