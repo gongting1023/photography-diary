@@ -20,6 +20,8 @@ cloudinary.config({
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 const app = express();
 app.use(cors());
+app.get('/exhibition/', (req, res) => res.redirect('/'));
+app.get('/exhibition', (req, res) => res.redirect('/'));
 app.use(express.static('_site'));
 
 // In-memory albums cache with TTL + request dedup

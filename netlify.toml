@@ -21,6 +21,16 @@
   to = "/album/index.html"
   status = 200
 
+[[redirects]]
+  from = "/exhibition/"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/exhibition"
+  to = "/"
+  status = 301
+
 [[headers]]
   for = "/*"
   [headers.values]
