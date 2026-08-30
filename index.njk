@@ -349,16 +349,23 @@
         // Hover preview
         if (previewUrls.length > 1) {
           let hoverTimer;
+          let currentPreload = null;
           article.addEventListener('mouseenter', function(){
             let idx = 0;
             hoverTimer = setInterval(function(){
               idx = (idx + 1) % previewUrls.length;
-              img.src = previewUrls[idx];
-              img.srcset = [400,800,1200].map(function(w){ return srcset(previewUrls[idx], w); }).join(', ');
+              let preloadImg = new Image();
+              preloadImg.onload = function(){
+                img.src = previewUrls[idx];
+                img.srcset = [400,800,1200].map(function(w){ return srcset(previewUrls[idx], w); }).join(', ');
+              };
+              preloadImg.src = previewUrls[idx];
+              currentPreload = preloadImg;
             }, 900);
           });
           article.addEventListener('mouseleave', function(){
             clearInterval(hoverTimer);
+            if (currentPreload) { currentPreload.src = ''; currentPreload = null; }
             if (coverUrl) {
               img.src = coverUrl;
               img.srcset = [400,800,1200].map(function(w){ return srcset(coverUrl, w); }).join(', ');

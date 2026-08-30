@@ -366,7 +366,7 @@
       var start = page * PER_PAGE;
       var end = Math.min(start + PER_PAGE, images.length);
       for (var i = start; i < end; i++) {
-        var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = images[i].url; document.head.appendChild(l);
+        var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = images[i].url; l.dataset.preload = ''; document.head.appendChild(l);
       }
     }
 
@@ -423,7 +423,7 @@
       const img = document.getElementById('lb-img');
       img.classList.remove('loaded');
       img.onload = function(){ this.classList.add('loaded'); };
-      img.src = images[currentIndex].url + '#t=' + Date.now();
+      img.src = images[currentIndex].url;
 
       const data = images[currentIndex];
       document.getElementById('lb-filename').textContent = data.filename;
@@ -449,6 +449,8 @@
     }
 
     function preloadAdjacent() {
+      var old = document.querySelectorAll('link[data-preload]');
+      for (var i = 0; i < old.length; i++) old[i].remove();
       var next = (currentIndex + 1) % images.length;
       var prev = (currentIndex - 1 + images.length) % images.length;
       ['next','prev'].forEach(function(dir){
@@ -457,6 +459,7 @@
         link.rel = 'preload';
         link.as = 'image';
         link.href = images[idx].url;
+        link.dataset.preload = '';
         document.head.appendChild(link);
       });
     }
