@@ -25,6 +25,10 @@ exports.handler = async function(event, context) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing folder parameter' }) };
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}(\/[\w-]+)*$/.test(folder)) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid folder format' }) };
+  }
+
   try {
     const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 
@@ -39,22 +43,26 @@ exports.handler = async function(event, context) {
       return Object.keys(m).length ? m : null;
     }
 
+    function withTimeout(promise, ms) {
+      return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+    }
+
     // Try Search API for metadata (optional), then always use Admin API for reliable resource listing
     let metadataMap = new Map();
     try {
-      const metaResult = await cloudinary.search
-        .expression(`resource_type:image AND asset_folder:"${folder}"`)
+      const metaResult = await withTimeout(cloudinary.search
+        .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`) 
         .max_results(500)
         .with_field('image_metadata')
-        .execute();
+        .execute(), 5000);
       (metaResult.resources || []).forEach(r => {
         metadataMap.set(r.public_id, parseExif(r.image_metadata));
       });
     } catch (e) {
-      // metadata optional
+      console.warn('Search API metadata fetch failed:', e.message);
     }
 
-    const result = await cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 });
+    const result = await withTimeout(cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 }), 8000);
     const resources = result.resources || [];
 
     resources.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));

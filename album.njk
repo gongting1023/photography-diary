@@ -23,10 +23,8 @@
     a{color:inherit;text-decoration:none}
     img{max-width:100%;display:block}
     ::selection{background:var(--accent);color:#fff}
-    ::-webkit-scrollbar{width:6px}
-    ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:rgba(14,165,233,.12);border-radius:3px}
-    ::-webkit-scrollbar-thumb:hover{background:rgba(14,165,233,.2)}
+    ::-webkit-scrollbar{width:0;height:0}
+    html{scrollbar-width:none}
     .site-header{padding:14px 40px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;left:0;right:0;z-index:100;background:var(--blur-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
     .site-header h1{font-size:1rem;font-weight:600;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px}
     .site-header h1 a{transition:opacity .2s}
@@ -211,22 +209,23 @@
   </div>
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span> <span class="contact-sep">·</span> <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a></div>
+      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span></div>
       <div class="footer-contact">
         <a class="footer-link footer-link--red" href="https://xhslink.com/m/8MA6NoHQesz" target="_blank" rel="noopener">小红书</a>
         <span class="contact-sep">·</span>
         <a class="footer-link--douyin" href="https://v.douyin.com/owyNGXrRXrA/" target="_blank" rel="noopener">抖音</a>
         <span class="contact-sep">·</span>
-        <span class="egg" id="egg-wechat">微信：GongzVirAug</span>
+        <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a>
         <span class="contact-sep">·</span>
-        <span class="egg" id="egg-email">邮箱：jogt@foxmail.com</span>
+        <span class="egg" id="egg-wechat">微信：GongzVirAug</span>
       </div>
     </div>
   </footer>
   <script>
     function toggleTheme(){var l=document.documentElement.getAttribute('data-theme')==='dark';if(l){document.documentElement.removeAttribute('data-theme');localStorage.setItem('theme','light')}else{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('theme','dark')}}
     function srcset(url,w){return url.replace('f_auto,q_auto','w_'+w+',f_auto,q_auto:eco')+' '+w+'w'}
-    function blurUrl(url){return url.replace('/upload/','/upload/w_30,e_blur:200,f_auto,q_auto:eco/')}
+    function blurUrl(url){return url.replace('f_auto,q_auto','w_30,e_blur:200,f_auto,q_auto:eco')}
+    function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
     var SITE_NAME = '{{ site.siteName }}';
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const folder = decodeURIComponent(pathParts.slice(1).join('/') || pathParts[0] || '');
@@ -240,8 +239,11 @@
     const PER_PAGE = 9;
     let currentPage = 1;
     let totalPages = 1;
+    var isLoading = false;
 
     async function loadAlbum() {
+      if (isLoading) return;
+      isLoading = true;
       loadingState.style.display = 'block';
       errorState.style.display = 'none';
       content.style.display = 'none';
@@ -250,6 +252,7 @@
         loadingState.style.display = 'none';
         errorState.style.display = 'block';
         errorState.querySelector('p').textContent = '无效的相册';
+        isLoading = false;
         return;
       }
 
@@ -267,13 +270,22 @@
             loadingState.style.display = 'none';
             content.style.display = 'block';
             renderPage(1);
+            if (window.location.hash.startsWith('#photo-')) {
+              var idx = parseInt(window.location.hash.slice(7)) - 1;
+              if (idx >= 0 && idx < images.length) openLightbox(idx);
+            }
+            isLoading = false;
+            return;
           }
         } catch(e) { sessionStorage.removeItem(cacheKey); }
       }
 
       try {
         const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:1023' : '';
-        const response = await fetch(apiBase + '/.netlify/functions/album?folder=' + encodeURIComponent(folder));
+        const controller = new AbortController();
+        var fetchTimeout = setTimeout(function(){ controller.abort(); }, 20000);
+        const response = await fetch(apiBase + '/.netlify/functions/album?folder=' + encodeURIComponent(folder), { signal: controller.signal });
+        clearTimeout(fetchTimeout);
         if (!response.ok) throw new Error('Failed to load');
         const data = await response.json();
         if (!data.images || !data.images.length) throw new Error('empty');
@@ -290,7 +302,7 @@
         renderPage(1);
         if (window.location.hash.startsWith('#photo-')) {
           var idx = parseInt(window.location.hash.slice(7)) - 1;
-          if (idx >= 0 && idx < images.length) setTimeout(function(){ openLightbox(idx); }, 300);
+          if (idx >= 0 && idx < images.length) openLightbox(idx);
         }
       } catch (error) {
         console.error('Load error:', error);
@@ -299,6 +311,8 @@
           errorState.querySelector('p').textContent = '加载失败';
           errorState.style.display = 'block';
         }
+      } finally {
+        isLoading = false;
       }
     }
 
@@ -307,14 +321,14 @@
       div.className = 'photo-item';
       if (window.innerWidth >= 768) div.style.background = 'url(' + blurUrl(imgData.url) + ') center/cover no-repeat var(--card)';
 
-      var exifHtml = '<div class="photo-exif"><div class="exif-filename">' + imgData.filename + '</div>';
+      var exifHtml = '<div class="photo-exif"><div class="exif-filename">' + escapeHtml(imgData.filename) + '</div>';
       var meta = imgData.metadata;
       if (meta && (meta.camera || meta.aperture || meta.focalLength || meta.iso)) {
         exifHtml += '<div class="exif-row">';
-        if (meta.camera) exifHtml += '<span>' + meta.camera.split(' ').slice(-1)[0] + '</span>';
-        if (meta.aperture) exifHtml += '<span>' + meta.aperture + '</span>';
-        if (meta.focalLength) exifHtml += '<span>' + meta.focalLength.replace('.0','') + '</span>';
-        if (meta.iso) exifHtml += '<span>' + meta.iso + '</span>';
+        if (meta.camera) exifHtml += '<span>' + escapeHtml(meta.camera.split(' ').slice(-1)[0]) + '</span>';
+        if (meta.aperture) exifHtml += '<span>' + escapeHtml(meta.aperture) + '</span>';
+        if (meta.focalLength) exifHtml += '<span>' + escapeHtml(meta.focalLength.replace('.0','')) + '</span>';
+        if (meta.iso) exifHtml += '<span>' + escapeHtml(meta.iso) + '</span>';
         exifHtml += '</div>';
       }
       exifHtml += '</div>';
@@ -322,13 +336,15 @@
       var isMobile = window.innerWidth < 768;
       var srcsetWidths = isMobile ? [200, 400] : [200, 400, 800];
       var sizesVal = isMobile ? '(max-width:480px) 45vw, 45vw' : '(max-width:1024px) 30vw, 22vw';
-      div.innerHTML = '<img src="' + imgData.url + '" alt="' + imgData.filename + '" loading="lazy" srcset="' + srcsetWidths.map(function(w){ return srcset(imgData.url,w); }).join(',') + '" sizes="' + sizesVal + '" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
+      div.innerHTML = '<img src="' + escapeHtml(imgData.url) + '" alt="' + escapeHtml(imgData.filename) + '" loading="lazy" srcset="' + srcsetWidths.map(function(w){ return srcset(imgData.url,w); }).join(',') + '" sizes="' + sizesVal + '" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
       div.addEventListener('click', function(){ openLightbox(index); });
       return div;
     }
 
     function renderPage(page) {
       currentPage = page;
+      var oldPreload = document.querySelectorAll('link[data-preload]');
+      for (var i = 0; i < oldPreload.length; i++) oldPreload[i].remove();
       grid.innerHTML = '';
       const start = (page - 1) * PER_PAGE;
       const end = Math.min(start + PER_PAGE, images.length);
@@ -385,6 +401,13 @@
     }
 
     var imgCache = {};
+    var CACHE_LIMIT = 20;
+    function cacheImage(url, src) {
+      var keys = Object.keys(imgCache);
+      if (keys.length >= CACHE_LIMIT && imgCache[url] === undefined) delete imgCache[keys[0]];
+      delete imgCache[url];
+      imgCache[url] = src;
+    }
     function updateLightbox() {
       resetZoom();
       const img = document.getElementById('lb-img');
@@ -395,7 +418,7 @@
         img.classList.add('loaded');
       } else {
         img.onload = function(){
-          imgCache[url] = img.src;
+          cacheImage(url, img.src);
           this.classList.add('loaded');
         };
         img.src = getLightboxUrl(url);
@@ -409,11 +432,11 @@
       var exifEl = document.getElementById('lb-exif');
       if (meta && (meta.camera || meta.aperture || meta.focalLength || meta.iso || meta.shutter)) {
         var parts = [];
-        if (meta.camera) parts.push('<span>' + meta.camera + '</span>');
-        if (meta.aperture) parts.push('<span>' + meta.aperture + '</span>');
-        if (meta.focalLength) parts.push('<span>' + meta.focalLength + '</span>');
-        if (meta.iso) parts.push('<span>' + meta.iso + '</span>');
-        if (meta.shutter) parts.push('<span>' + meta.shutter + '</span>');
+        if (meta.camera) parts.push('<span>' + escapeHtml(meta.camera) + '</span>');
+        if (meta.aperture) parts.push('<span>' + escapeHtml(meta.aperture) + '</span>');
+        if (meta.focalLength) parts.push('<span>' + escapeHtml(meta.focalLength) + '</span>');
+        if (meta.iso) parts.push('<span>' + escapeHtml(meta.iso) + '</span>');
+        if (meta.shutter) parts.push('<span>' + escapeHtml(meta.shutter) + '</span>');
         exifEl.innerHTML = parts.join('');
         exifEl.style.display = '';
       } else {
@@ -535,6 +558,8 @@
 
     // Swipe
     let touchStartX = 0, touchEndX = 0, touchStartY = 0;
+    var isPinching = false;
+    var lastPinchTime = 0;
     const SWIPE_THRESHOLD = 50;
 
     document.getElementById('lightbox').addEventListener('touchstart', function(e) {
@@ -545,7 +570,7 @@
     }, { passive: true });
 
     document.getElementById('lightbox').addEventListener('touchend', function(e) {
-      if (e.changedTouches.length === 1) {
+      if (!isPinching && e.changedTouches.length === 1 && Date.now() - lastPinchTime > 300) {
         touchEndX = e.changedTouches[0].screenX;
         var dy = Math.abs(e.changedTouches[0].screenY - touchStartY);
         var dx = Math.abs(touchStartX - touchEndX);
@@ -559,6 +584,7 @@
     var lastDist = 0;
     document.getElementById('lightbox').addEventListener('touchmove', function(e) {
       if (e.touches.length === 2) {
+        isPinching = true;
         e.preventDefault();
         var dx = e.touches[0].clientX - e.touches[1].clientX;
         var dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -572,7 +598,7 @@
       }
     }, { passive: false });
 
-    document.getElementById('lightbox').addEventListener('touchend', function() { lastDist = 0; }, { passive: true });
+    document.getElementById('lightbox').addEventListener('touchend', function() { lastDist = 0; isPinching = false; lastPinchTime = Date.now(); }, { passive: true });
 
     // Mouse move shows/hides nav on desktop
     var navTimer;
@@ -629,14 +655,11 @@
   document.getElementById('egg-year').addEventListener('click', function(){ overlay('Fight!'); });
   document.getElementById('egg-moment').addEventListener('click', function(){ hearts(this); egg(this, 'egg-pop'); });
   document.getElementById('egg-wechat').addEventListener('click', function(){
-    navigator.clipboard.writeText('GongzVirAug');
-    overlay('微信已复制 ✓');
-    egg(this, 'egg-pop');
-  });
-  document.getElementById('egg-email').addEventListener('click', function(){
-    navigator.clipboard.writeText('jogt@foxmail.com');
-    overlay('邮箱已复制 ✓');
-    egg(this, 'egg-pop');
+    var self = this;
+    navigator.clipboard.writeText('GongzVirAug')
+      .then(function(){ overlay('微信已复制 ✓'); })
+      .catch(function(){ overlay('复制失败，请长按复制'); });
+    egg(self, 'egg-pop');
   });
   </script>
 </body>

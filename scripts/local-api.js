@@ -34,22 +34,26 @@ app.get('/album/*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', '_site', 'album', 'index.html'));
 });
 
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+}
+
 async function getAllResources() {
   let allResources = [];
   let cursor = null;
   let pages = 0;
 
   do {
-    const result = await cloudinary.api.resources({
+    const result = await withTimeout(cloudinary.api.resources({
       type: 'upload',
       max_results: 500,
       next_cursor: cursor
-    });
+    }), 8000);
     allResources = allResources.concat(result.resources || []);
     cursor = result.next_cursor;
     pages++;
     console.log('  Page ' + pages + ': ' + allResources.length + ' resources');
-  } while (cursor && pages < 6);
+  } while (cursor && pages < 20);
 
   return allResources;
 }
@@ -121,7 +125,7 @@ async function getAlbum(folder) {
   let metadataMap = new Map();
   try {
     const searchPromise = cloudinary.search
-      .expression(`resource_type:image AND asset_folder:"${folder}"`)
+      .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`) 
       .sort_by('created_at', 'asc')
       .max_results(500)
       .with_field('image_metadata')
@@ -138,7 +142,7 @@ async function getAlbum(folder) {
   }
 
   // Use Admin API for fast resource listing
-  const result = await cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 });
+  const result = await withTimeout(cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 }), 8000);
   const resources = result.resources || [];
 
   // Sort by created_at ascending (Admin API doesn't support custom sort)
@@ -167,6 +171,7 @@ app.get('/.netlify/functions/album', async (req, res) => {
   try {
     const { folder } = req.query;
     if (!folder) return res.status(400).json({ error: 'Missing folder' });
+    if (!/^\d{4}-\d{2}-\d{2}(\/[\w-]+)*$/.test(folder)) return res.status(400).json({ error: 'Invalid folder format' });
     const images = await getAlbum(folder);
     res.json({ folder, images, total: images.length });
   } catch (e) {

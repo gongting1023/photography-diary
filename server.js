@@ -35,9 +35,13 @@ const server = http.createServer((req, res) => {
     filePath = path.join(filePath, 'index.html');
   }
 
+  if (!fs.existsSync(filePath) && urlPath.startsWith('/album/')) {
+    filePath = path.join(STATIC_DIR, 'album', 'index.html');
+  }
+
   if (!fs.existsSync(filePath)) {
-    res.writeHead(404);
-    res.end('Not Found: ' + urlPath);
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not Found');
     return;
   }
 
@@ -49,7 +53,14 @@ const server = http.createServer((req, res) => {
     'Access-Control-Allow-Origin': '*',
   });
 
-  fs.createReadStream(filePath).pipe(res);
+  const stream = fs.createReadStream(filePath);
+  stream.on('error', () => {
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    }
+    res.end('Internal Server Error');
+  });
+  stream.pipe(res);
 });
 
 server.listen(PORT, '127.0.0.1', () => {

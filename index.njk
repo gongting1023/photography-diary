@@ -25,10 +25,8 @@
     a{color:inherit;text-decoration:none}
     img{max-width:100%;display:block}
     ::selection{background:var(--accent);color:#fff}
-    ::-webkit-scrollbar{width:6px}
-    ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:rgba(14,165,233,.12);border-radius:3px}
-    ::-webkit-scrollbar-thumb:hover{background:rgba(14,165,233,.2)}
+    ::-webkit-scrollbar{width:0;height:0}
+    html{scrollbar-width:none}
     .site-header{padding:16px 48px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;left:0;right:0;z-index:100;background:var(--blur-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
     main{animation:pageIn .4s ease}
     .site-header h1{font-size:1rem;font-weight:600;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px}
@@ -67,6 +65,14 @@
     .album:nth-child(10){animation-delay:.5s}
     .album:nth-child(11){animation-delay:.55s}
     .album:nth-child(12){animation-delay:.6s}
+    .album:nth-child(13){animation-delay:.65s}
+    .album:nth-child(14){animation-delay:.7s}
+    .album:nth-child(15){animation-delay:.75s}
+    .album:nth-child(16){animation-delay:.8s}
+    .album:nth-child(17){animation-delay:.85s}
+    .album:nth-child(18){animation-delay:.9s}
+    .album:nth-child(19){animation-delay:.95s}
+    .album:nth-child(20){animation-delay:1s}
     .album-cover{aspect-ratio:16/11;overflow:hidden;position:relative;background:var(--card);border-radius:16px}
     .album-cover img{width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.16,1,.3,1)}
     .album:hover .album-cover img{transform:scale(1.04)}
@@ -186,22 +192,23 @@
   </main>
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span> <span class="contact-sep">·</span> <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a></div>
+      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span></div>
       <div class="footer-contact">
         <a class="footer-link footer-link--red" href="https://xhslink.com/m/8MA6NoHQesz" target="_blank" rel="noopener">小红书</a>
         <span class="contact-sep">·</span>
         <a class="footer-link--douyin" href="https://v.douyin.com/owyNGXrRXrA/" target="_blank" rel="noopener">抖音</a>
         <span class="contact-sep">·</span>
-        <span class="egg" id="egg-wechat">微信：GongzVirAug</span>
+        <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a>
         <span class="contact-sep">·</span>
-        <span class="egg" id="egg-email">邮箱：jogt@foxmail.com</span>
+        <span class="egg" id="egg-wechat">微信：GongzVirAug</span>
       </div>
     </div>
   </footer>
     <script>
     function toggleTheme(){var l=document.documentElement.getAttribute('data-theme')==='dark';if(l){document.documentElement.removeAttribute('data-theme');localStorage.setItem('theme','light')}else{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('theme','dark')}}
     function srcset(url,w){return url.replace('f_auto,q_auto','w_'+w+',f_auto,q_auto:eco')+' '+w+'w'}
-    function blurUrl(url){return url.replace('/upload/','/upload/w_30,e_blur:200,f_auto,q_auto:eco/')}
+    function blurUrl(url){return url.replace('f_auto,q_auto','w_30,e_blur:200,f_auto,q_auto:eco')}
+    function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
     var loadingState = document.getElementById('loadingState');
     var errorState = document.getElementById('errorState');
     var emptyState = document.getElementById('emptyState');
@@ -211,9 +218,13 @@
     var currentPage = 1;
     var totalPages = 1;
     var PER_PAGE = 9;
-    function savedPage(){var p=sessionStorage.getItem('pg');return p?parseInt(p):1}
+    var isLoading = false;
+    var isRefreshing = false;
+    function savedPage(){var p=sessionStorage.getItem('pg');var n=p?parseInt(p):1;if(n>totalPages)n=totalPages;if(n<1)n=1;return n}
     
     async function loadAlbums() {
+      if (isLoading) return;
+      isLoading = true;
       loadingState.style.display = 'block';
       errorState.style.display = 'none';
       emptyState.style.display = 'none';
@@ -250,6 +261,8 @@
     }
 
     async function fetchAlbumsFresh(retries) {
+      if (isRefreshing) return;
+      isRefreshing = true;
       if (retries === undefined) retries = 0;
       try {
         const controller = new AbortController();
@@ -273,9 +286,12 @@
           pagination.style.display = 'flex';
           renderPage(savedPage());
         }
+        isLoading = false;
+        isRefreshing = false;
       } catch (error) {
         console.error('Fetch error:', error.message);
         if (retries < 2) {
+          isRefreshing = false;
           var delay = (retries + 1) * 2000;
           loadingState.querySelector('.loading-tagline').textContent = '连接中，请稍候...';
           setTimeout(function(){ fetchAlbumsFresh(retries + 1); }, delay);
@@ -286,6 +302,8 @@
           } else {
             errorState.style.display = 'block';
           }
+          isLoading = false;
+          isRefreshing = false;
         }
       }
     }
@@ -293,6 +311,9 @@
     function renderPage(page) {
       currentPage = page;
       grid.innerHTML = '';
+      // 清理旧的 preload link
+      var oldPreload = document.querySelectorAll('link[data-preload]');
+      for (var i = 0; i < oldPreload.length; i++) oldPreload[i].remove();
       var start = (page - 1) * PER_PAGE;
       var end = Math.min(start + PER_PAGE, albums.length);
 
@@ -313,7 +334,6 @@
         let albumDate = album.date || '';
         let albumUrl = album.url || '';
         let isFirst = i === start;
-        let previewUrls = album.images ? album.images.slice(0, 4).map(function(x){ return x.url; }).filter(Boolean) : [];
 
         let article = document.createElement('article');
         article.className = 'album';
@@ -338,36 +358,9 @@
         }
         cover.appendChild(img);
 
-        // Hover preview
-        if (previewUrls.length > 1) {
-          let hoverTimer;
-          let currentPreload = null;
-          article.addEventListener('mouseenter', function(){
-            let idx = 0;
-            hoverTimer = setInterval(function(){
-              idx = (idx + 1) % previewUrls.length;
-              let preloadImg = new Image();
-              preloadImg.onload = function(){
-                img.src = previewUrls[idx];
-                img.srcset = [400,800,1200].map(function(w){ return srcset(previewUrls[idx], w); }).join(', ');
-              };
-              preloadImg.src = previewUrls[idx];
-              currentPreload = preloadImg;
-            }, 900);
-          });
-          article.addEventListener('mouseleave', function(){
-            clearInterval(hoverTimer);
-            if (currentPreload) { currentPreload.src = ''; currentPreload = null; }
-            if (coverUrl) {
-              img.src = coverUrl;
-              img.srcset = [400,800,1200].map(function(w){ return srcset(coverUrl, w); }).join(', ');
-            }
-          });
-        }
-
         let info = document.createElement('div');
         info.className = 'album-info';
-        info.innerHTML = '<span class="album-date">' + albumDate + '</span><span class="album-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + photoCount + '</span>';
+        info.innerHTML = '<span class="album-date">' + escapeHtml(albumDate) + '</span><span class="album-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + photoCount + '</span>';
 
         article.appendChild(cover);
         article.appendChild(info);
@@ -386,7 +379,12 @@
       for (var i = start; i < end; i++) {
         var u = albums[i].coverImage;
         if (!u || u === 'undefined' || u === 'null') u = albums[i].images && albums[i].images[0] && albums[i].images[0].url;
-        if (u && u !== 'undefined' && u !== 'null' && u.startsWith && u.startsWith('http')) { var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = u; document.head.appendChild(l); }
+        if (u && u !== 'undefined' && u !== 'null' && u.startsWith && u.startsWith('http')) {
+          var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image';
+          l.href = u.replace('f_auto,q_auto', 'w_400,f_auto,q_auto:eco');
+          l.dataset.preload = '';
+          document.head.appendChild(l);
+        }
       }
     }
 
@@ -405,6 +403,18 @@
 
     loadingState.querySelector('.loading-tagline').textContent = '正在载入相册...';
     loadAlbums();
+
+    // 滚动接近底部时预加载下一页
+    var preloadedPages = {};
+    window.addEventListener('scroll', function(){
+      if (preloadedPages[currentPage]) return;
+      var scrollBottom = window.innerHeight + window.scrollY;
+      var docHeight = document.documentElement.scrollHeight;
+      if (scrollBottom > docHeight - 600) {
+        preloadedPages[currentPage] = true;
+        preloadNextPage(currentPage);
+      }
+    }, { passive: true });
 
     // ─── 小彩蛋 ───
     function egg(el, anim) {
@@ -453,14 +463,11 @@
     document.getElementById('egg-year').addEventListener('click', function(){ overlay('Fight!'); });
     document.getElementById('egg-moment').addEventListener('click', function(){ hearts(this); egg(this, 'egg-pop'); });
     document.getElementById('egg-wechat').addEventListener('click', function(){
-      navigator.clipboard.writeText('GongzVirAug');
-      overlay('微信已复制 ✓');
-      egg(this, 'egg-pop');
-    });
-    document.getElementById('egg-email').addEventListener('click', function(){
-      navigator.clipboard.writeText('jogt@foxmail.com');
-      overlay('邮箱已复制 ✓');
-      egg(this, 'egg-pop');
+      var self = this;
+      navigator.clipboard.writeText('GongzVirAug')
+        .then(function(){ overlay('微信已复制 ✓'); })
+        .catch(function(){ overlay('复制失败，请长按复制'); });
+      egg(self, 'egg-pop');
     });
   </script>
  </body>

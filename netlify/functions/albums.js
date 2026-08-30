@@ -12,6 +12,7 @@ const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 async function getAllResources() {
   let allResources = [];
   let cursor = null;
+  let pages = 0;
 
   do {
     let query = cloudinary.search
@@ -21,11 +22,15 @@ async function getAllResources() {
 
     if (cursor) query = query.next_cursor(cursor);
 
-    const result = await query.execute();
+    const result = await Promise.race([
+      query.execute(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ]);
     allResources = allResources.concat(result.resources || []);
     cursor = result.next_cursor;
+    pages++;
 
-  } while (cursor);
+  } while (cursor && pages < 20);
 
   return allResources;
 }
