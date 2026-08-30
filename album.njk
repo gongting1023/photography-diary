@@ -71,13 +71,11 @@
     .pagination .page-info{color:var(--muted);font-size:.85rem;padding:0 8px;min-width:60px;text-align:center}
     .lightbox{position:fixed;inset:0;background:#000;z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease}
     .lightbox.active{opacity:1;pointer-events:auto}
-    .lightbox-close{position:absolute;top:24px;right:24px;width:40px;height:40px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;font-size:1.2rem;z-index:10}
-    .lightbox-close:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
-    .lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;background:rgba(255,255,255,.06);border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;font-size:1.3rem;z-index:10;opacity:0}
-    .lightbox.active .lightbox-nav{opacity:1}
-    .lightbox-nav:hover{background:rgba(255,255,255,.14)}
-    .lightbox-nav.prev{left:24px}
-    .lightbox-nav.next{right:24px}
+    .lightbox-close{display:none}
+    .lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;border-radius:50%;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease,background .25s;font-size:1.1rem;z-index:10;opacity:0}
+    .lightbox-nav:hover{background:rgba(255,255,255,.18);color:#fff}
+    .lightbox-nav.prev{left:20px}
+    .lightbox-nav.next{right:20px}
     .lightbox-content{max-width:94vw;max-height:90vh;display:flex;align-items:center;justify-content:center;position:relative;width:100%;overflow:hidden}
     .lightbox-content img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px;opacity:0;touch-action:none;cursor:zoom-in;will-change:transform;transition:opacity .3s ease}
     .lightbox-content img.loaded{opacity:1}
@@ -92,12 +90,8 @@
     .lb-filename{color:#fff;font-size:.85rem;font-weight:500;letter-spacing:.01em}
     .lb-exif{color:rgba(255,255,255,.55);font-size:.75rem;margin-top:5px;display:flex;gap:14px;flex-wrap:wrap}
     .lb-exif span{display:flex;align-items:center;gap:3px}
-    .lb-download{position:absolute;top:24px;right:72px;width:40px;height:40px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;font-size:1rem;z-index:10;text-decoration:none}
-    .lb-download:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
-    .lb-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:14px 24px;border-radius:12px;color:#fff;font-size:.8rem;display:flex;gap:18px;pointer-events:none;opacity:0;transition:opacity .4s ease;z-index:5;white-space:nowrap}
-    .lb-hint.show{opacity:1}
-    .lb-hint span{display:flex;align-items:center;gap:6px}
-    .lb-hint kbd{background:rgba(255,255,255,.15);padding:2px 7px;border-radius:4px;font-family:inherit;font-size:.72rem;min-width:22px;text-align:center;line-height:1.4}
+    .lb-download{display:none}
+    .lb-hint{display:none}
     .footer{background:#f5f5f7;border-top:1px solid #e8e8ed;margin-top:auto}
     [data-theme=dark] .footer{background:#1a1a1a;border-top-color:#2c2c2e}
     .footer-inner{max-width:980px;margin:0 auto;padding:20px 22px 24px;text-align:center}
@@ -115,10 +109,6 @@
     .footer-link--douyin:hover{color:#fff;opacity:.8}
     .footer-link--douyin::after{display:none}
     .footer-contact span{color:#86868b}
-    .back-top{position:fixed;bottom:80px;right:24px;z-index:50;width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;opacity:0;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-    .back-top.show{opacity:1;pointer-events:auto}
-    .back-top:hover{color:var(--accent);border-color:var(--accent)}
-    .back-top svg{width:18px;height:18px}
     main{animation:pageIn .4s ease}
     .egg{cursor:pointer;display:inline-block;transition:color .2s}
     .egg:hover{color:var(--accent)}
@@ -149,16 +139,16 @@
       .photo-exif .exif-row{font-size:.65rem;gap:6px}
       .back-link{margin-bottom:20px;font-size:.85rem}
       .lightbox-nav{width:36px;height:36px;display:none}
-      .lightbox-close{top:14px;right:14px;width:36px;height:36px;font-size:1rem}
+      .lightbox-close{display:none}
+      .lb-download{display:none}
       .lightbox-info{padding:36px 16px 20px}
       .lb-filename{font-size:.78rem}
       .lb-exif{font-size:.7rem;gap:8px;margin-top:3px}
     }
     @media(max-width:480px){
-      .photo-grid{grid-template-columns:1fr;gap:8px}
+      .photo-grid{grid-template-columns:repeat(2,1fr);gap:8px}
       .pagination button{min-width:44px;height:44px}
       .photo-exif{opacity:1}
-      .back-top{bottom:60px;right:14px;width:34px;height:34px}
     }
   </style>
 </head>
@@ -202,26 +192,14 @@
       <div class="pagination" id="pagination"></div>
     </div>
   </main>
-  <button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到顶部">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
-  </button>
   <div id="lightbox" class="lightbox">
-    <button class="lightbox-close" onclick="closeLightbox()" aria-label="关闭">&#x2715;</button>
-    <a class="lb-download" id="lb-download" href="#" download target="_blank" rel="noopener" aria-label="下载原图">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    </a>
     <button class="lightbox-nav prev" onclick="prevImage()" aria-label="上一张">&#x276E;</button>
     <button class="lightbox-nav next" onclick="nextImage()" aria-label="下一张">&#x276F;</button>
     <div class="lightbox-content">
       <img id="lb-img" src="" alt="">
-      <div class="lb-hint" id="lb-hint">
-        <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> 切换</span>
-        <span><kbd>ESC</kbd> 关闭</span>
-        <span><kbd>空格</kbd> 信息</span>
-      </div>
       <div class="lb-zoom" id="lb-zoom">100%</div>
     </div>
-    <div class="lightbox-info" id="lb-info">
+    <div class="lightbox-info hidden" id="lb-info">
       <div class="lb-info-left">
         <p class="lb-filename" id="lb-filename"></p>
         <p class="lb-exif" id="lb-exif"></p>
@@ -233,7 +211,7 @@
   </div>
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span></div>
+      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span> <span class="contact-sep">·</span> <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a></div>
       <div class="footer-contact">
         <a class="footer-link footer-link--red" href="https://xhslink.com/m/8MA6NoHQesz" target="_blank" rel="noopener">小红书</a>
         <span class="contact-sep">·</span>
@@ -341,7 +319,10 @@
       }
       exifHtml += '</div>';
 
-      div.innerHTML = '<img src="' + imgData.url + '" alt="' + imgData.filename + '" loading="lazy" srcset="' + [200,400,800].map(function(w){ return srcset(imgData.url,w); }).join(',') + '" sizes="(max-width:480px) 45vw, (max-width:1024px) 30vw, 22vw" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
+      var isMobile = window.innerWidth < 768;
+      var srcsetWidths = isMobile ? [200, 400] : [200, 400, 800];
+      var sizesVal = isMobile ? '(max-width:480px) 45vw, 45vw' : '(max-width:1024px) 30vw, 22vw';
+      div.innerHTML = '<img src="' + imgData.url + '" alt="' + imgData.filename + '" loading="lazy" srcset="' + srcsetWidths.map(function(w){ return srcset(imgData.url,w); }).join(',') + '" sizes="' + sizesVal + '" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
       div.addEventListener('click', function(){ openLightbox(index); });
       return div;
     }
@@ -383,33 +364,14 @@
       }
     }
 
-    // Back to top
-    window.addEventListener('scroll', function(){ document.getElementById('backTop').classList.toggle('show', window.scrollY > 400); });
-
     loadAlbum();
 
-    function getDownloadUrl(url) { return url.replace('/upload/f_auto,q_auto/', '/upload/fl_attachment/'); }
-
-    var hintShown = false;
     function openLightbox(index) {
       currentIndex = index;
       document.getElementById('lightbox').classList.add('active');
       document.body.style.overflow = 'hidden';
       updateLightbox();
       history.replaceState(null, '', '#photo-' + (index + 1));
-      // show keyboard hint briefly (desktop only)
-      if (!hintShown && window.innerWidth >= 768) {
-        hintShown = true;
-        var hint = document.getElementById('lb-hint');
-        hint.classList.add('show');
-        setTimeout(function(){ hint.classList.remove('show'); }, 2800);
-      }
-      // auto-hide info after 3s on mobile
-      if (window.innerWidth < 768) {
-        clearTimeout(window._infoTimer);
-        document.getElementById('lb-info').classList.remove('hidden');
-        window._infoTimer = setTimeout(function(){ document.getElementById('lb-info').classList.add('hidden'); }, 3000);
-      }
     }
 
     function closeLightbox() {
@@ -418,17 +380,30 @@
       history.replaceState(null, '', window.location.pathname);
     }
 
+    function getLightboxUrl(url) {
+      return url.replace('/upload/f_auto,q_auto', '/upload/w_1600,f_auto,q_auto:eco');
+    }
+
+    var imgCache = {};
     function updateLightbox() {
       resetZoom();
       const img = document.getElementById('lb-img');
       img.classList.remove('loaded');
-      img.onload = function(){ this.classList.add('loaded'); };
-      img.src = images[currentIndex].url;
+      var url = images[currentIndex].url;
+      if (imgCache[url]) {
+        img.src = imgCache[url];
+        img.classList.add('loaded');
+      } else {
+        img.onload = function(){
+          imgCache[url] = img.src;
+          this.classList.add('loaded');
+        };
+        img.src = getLightboxUrl(url);
+      }
 
       const data = images[currentIndex];
       document.getElementById('lb-filename').textContent = data.filename;
       document.getElementById('lb-counter').textContent = (currentIndex + 1) + ' / ' + images.length;
-      document.getElementById('lb-download').href = getDownloadUrl(data.url);
 
       var meta = data.metadata;
       var exifEl = document.getElementById('lb-exif');
@@ -451,17 +426,19 @@
     function preloadAdjacent() {
       var old = document.querySelectorAll('link[data-preload]');
       for (var i = 0; i < old.length; i++) old[i].remove();
-      var next = (currentIndex + 1) % images.length;
-      var prev = (currentIndex - 1 + images.length) % images.length;
-      ['next','prev'].forEach(function(dir){
-        var idx = dir === 'next' ? next : prev;
-        var link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = images[idx].url;
-        link.dataset.preload = '';
-        document.head.appendChild(link);
-      });
+      var preloadCount = 2;
+      for (var d = 1; d <= preloadCount; d++) {
+        var next = (currentIndex + d) % images.length;
+        var prev = (currentIndex - d + images.length) % images.length;
+        [next, prev].forEach(function(idx){
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'image';
+          link.href = getLightboxUrl(images[idx].url);
+          link.dataset.preload = '';
+          document.head.appendChild(link);
+        });
+      }
     }
 
     function prevImage() { currentIndex = (currentIndex - 1 + images.length) % images.length; updateLightbox(); }
@@ -492,7 +469,7 @@
     }
 
     document.getElementById('lightbox').addEventListener('click', function(e) {
-      if (e.target === e.currentTarget) closeLightbox();
+      if (e.target === e.currentTarget || e.target.classList.contains('lightbox-content')) closeLightbox();
     });
 
     document.getElementById('lb-img').addEventListener('click', function(e) {
@@ -500,18 +477,27 @@
       document.getElementById('lb-info').classList.toggle('hidden');
     });
 
+    function hideNav() {
+      var navs = document.querySelectorAll('.lightbox-nav');
+      navs.forEach(function(n){ n.style.opacity = '0'; });
+    }
+    function showNav() {
+      var navs = document.querySelectorAll('.lightbox-nav');
+      navs.forEach(function(n){ n.style.opacity = '1'; });
+    }
+
     document.addEventListener('keydown', function(e) {
       if (!document.getElementById('lightbox').classList.contains('active')) return;
       if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') prevImage();
-      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') { prevImage(); hideNav(); }
+      if (e.key === 'ArrowRight') { nextImage(); hideNav(); }
       if (e.key === ' ') { e.preventDefault(); document.getElementById('lb-info').classList.toggle('hidden'); }
     });
 
     // Wheel zoom
     document.getElementById('lightbox').addEventListener('wheel', function(e) {
       if (!document.getElementById('lightbox').classList.contains('active')) return;
-      if (e.target.closest('.lightbox-nav') || e.target.closest('.lightbox-close') || e.target.closest('.lb-download')) return;
+      if (e.target.closest('.lightbox-nav')) return;
       e.preventDefault();
       var d = e.deltaY < 0 ? 0.1 : -0.1;
       zoom = Math.max(1, Math.min(5, zoom + d));
@@ -591,12 +577,11 @@
     // Mouse move shows/hides nav on desktop
     var navTimer;
     document.getElementById('lightbox').addEventListener('mousemove', function() {
-      var navs = document.querySelectorAll('.lightbox-nav');
-      navs.forEach(function(n){ n.style.opacity = '1'; });
+      showNav();
       clearTimeout(navTimer);
       navTimer = setTimeout(function(){
         if (document.getElementById('lightbox').classList.contains('active')) {
-          navs.forEach(function(n){ n.style.opacity = '0'; });
+          hideNav();
         }
       }, 2000);
     });

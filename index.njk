@@ -99,10 +99,6 @@
     .footer-link--douyin:hover{color:#fff;opacity:.8}
     .footer-link--douyin::after{display:none}
     .footer-contact span{color:#86868b}
-    .back-top{position:fixed;bottom:80px;right:24px;z-index:50;width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;opacity:0;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-    .back-top.show{opacity:1;pointer-events:auto}
-    .back-top:hover{color:var(--accent);border-color:var(--accent)}
-    .back-top svg{width:18px;height:18px}
     @keyframes pageIn{0%{opacity:0}100%{opacity:1}}
     .loading{text-align:center;padding:120px 20px;color:var(--muted)}
     .loading-spinner{width:48px;height:48px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .9s cubic-bezier(.6,0,.4,1) infinite;margin:0 auto 24px;position:relative}
@@ -147,7 +143,6 @@
       .pagination button{min-width:44px;height:44px}
       .hero h1{font-size:1.9rem}
       .container{padding:70px 14px 30px}
-      .back-top{bottom:60px;right:14px;width:34px;height:34px}
     }
   </style>
 </head>
@@ -189,12 +184,9 @@
     <div class="albums" id="albumGrid" style="display:none"></div>
     <div class="pagination" id="pagination" style="display:none"></div>
   </main>
-  <button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到顶部">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
-  </button>
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span></div>
+      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span> <span class="contact-sep">·</span> <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a></div>
       <div class="footer-contact">
         <a class="footer-link footer-link--red" href="https://xhslink.com/m/8MA6NoHQesz" target="_blank" rel="noopener">小红书</a>
         <span class="contact-sep">·</span>
@@ -410,11 +402,6 @@
         pagination.appendChild(btn);
       }
     }
-
-    // Back to top visibility
-    window.addEventListener('scroll', function(){
-      document.getElementById('backTop').classList.toggle('show', window.scrollY > 400);
-    });
 
     loadingState.querySelector('.loading-tagline').textContent = '正在载入相册...';
     loadAlbums();
