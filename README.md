@@ -20,15 +20,16 @@
 ## 功能特性
 
 - 📷 **Cloudinary 图床** — 照片传上 Cloudinary，网站按文件夹自动生成相册
+- 🎞️ **全屏视频 Hero** — 24 段压缩 WebM 视频循环自动播放，16:9 无裁切铺满首屏，沉浸式夜境氛围
 - 🖼️ **专业图片查看器** — 点击照片全屏浏览，支持键盘 ← →、鼠标滚轮缩放、双指捏合、双击放大、拖拽平移、滑动手势
-- 📱 **全端适配** — 电脑、平板、手机都能完美显示，手机端单独优化（1 列布局、大触摸按钮、EXIF 常显）
-- 🌙 **深色/浅色主题** — 记忆用户偏好，一键切换，iOS 风格毛玻璃效果
+- 📱 **全端适配** — 电脑、平板、手机都能完美显示，手机端单独优化（大触摸按钮、EXIF 常显）
+- 🌙 **固定深色主题** — 固定暗色沉浸式风格，iOS 风格毛玻璃效果
 - 🔄 **自动同步** — 增删照片后网站实时更新，无需手动操作
 - 🔒 **密钥安全** — API 密钥由 Netlify Functions 保护，不暴露前端
-- ⚡ **懒加载 & 占位图** — 图片懒加载 + 模糊占位图（手机端跳过减少请求）
+- ⚡ **懒加载 & 占位图** — 图片懒加载 + 模糊占位图，视频压缩为 WebM 优化加载
 - 📑 **分页浏览** — 相册和照片都支持分页，翻页状态回退自动恢复
 - 🚀 **一键部署** — 点击按钮即可部署到 Netlify，无需写代码
-- 🎨 **彩蛋交互** — 点击「定格美妙瞬间」飘爱心、点击年份弹出 "Fight!"、微信/邮箱点击复制
+- 🎨 **彩蛋交互** — 点击「定格美好」触发地震/快门特效、点击年份撒卡片彩纸、点击标语绽放星光
 - 🧩 **PWA 支持** — 可安装到手机桌面，类原生体验
 - ✏️ **完全可配置** — 修改 `config.js` 即可自定义站点名称、标语、底部社交链接
 - 🆓 **开源免费** — MIT 协议，自由使用、二次开发
@@ -121,7 +122,6 @@ module.exports = {
     social: [
       { label: '小红书', url: 'https://...', brand: 'xiaohongshu' },
       { label: '抖音', url: 'https://...', brand: 'douyin' },
-      { label: '微信：你的微信号' },
       { label: '邮箱：你的邮箱', url: 'mailto:...' }
     ]
   }
@@ -156,6 +156,23 @@ npm run build
 
 ---
 
+## Hero 视频优化
+
+首页首屏会循环播放多段 Hero 视频。为了兼顾画质与加载速度，视频已压缩为 **WebM（VP9/1080p/CRF 26/无声，每段约 8 秒）**，存于 `static/video/`，构建时由 `.eleventy.js` 透传复制到 `_site`。
+
+如需重新压缩视频（比如更换视频源），可用脚本批量处理：
+
+```powershell
+# 将 MP4 视频放到 static/video 后，运行：
+powershell -ExecutionPolicy Bypass -File scripts/compress-videos.ps1
+```
+
+脚本会并行（每次 4 个）把 `static/video/*.mp4` 转成 WebM，覆盖同名 `.webm` 文件。
+
+> 注意：GitHub 单文件硬上限为 100MB，视频压缩后应尽量保持单文件小于 50MB，避免 push 被拒绝或仓库过大。
+
+---
+
 ## Cloudinary 配置
 
 1. 注册 [Cloudinary](https://cloudinary.com)
@@ -171,17 +188,21 @@ npm run build
 ```
 photography-diary/
 ├── config.js            # 网站配置（名称、标题、社交链接）
-├── index.njk            # 首页模板（相册网格、分页、彩蛋）
+├── index.njk            # 首页模板（视频 Hero、相册网格、分页、彩蛋）
 ├── album.njk            # 相册详情页模板（照片网格、灯箱查看器）
 ├── manifest.njk         # PWA 清单（可安装到桌面）
 ├── _data/site.js        # 读取 config.js 供模板使用
-├── .eleventy.js         # Eleventy 构建配置
+├── .eleventy.js         # Eleventy 构建配置（含 static 静态资源拷贝）
+├── static/
+│   ├── video/           # 首屏 Hero 视频（1-24.webm，压缩后的 WebM）
+│   └── ...              # 其他静态资源
 ├── netlify/
 │   └── functions/       # API 接口（保护密钥）
 │       ├── albums.js    # 相册列表 API
 │       └── album.js     # 单个相册详情 API
 ├── scripts/
-│   └── local-api.js     # 本地开发 API 服务器
+│   ├── local-api.js     # 本地开发 API 服务器
+│   └── compress-videos.ps1  # 视频批量压缩脚本（MP4 → WebM）
 ├── .env                 # 环境变量（不上传）
 ├── .env.example         # 环境变量模板
 ├── netlify.toml         # Netlify 部署配置
@@ -227,7 +248,6 @@ MIT License
 - 抖音：[@龚仔仔仔仔](https://v.douyin.com/Hc74k9FgjPY/)
 - 小红书：[@龚仔仔仔仔](https://xhslink.com/m/9WzBstwHLKF)
 - Email：jogt@foxmail.com
-- WeChat：GongzVirAug
 
 ---
 

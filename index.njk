@@ -40,6 +40,7 @@
     .container{max-width:1760px;margin:0 auto;padding:35px 40px 60px;flex:1}
     .hero{text-align:center;position:relative;overflow:hidden;width:100%;aspect-ratio:16/9;margin-top:-64px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
     .hero-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0}
+    .hero-video-prebuffer{position:absolute;width:1px;height:1px;opacity:0;visibility:hidden;pointer-events:none}
     .hero-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.18);z-index:0}
     .hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);pointer-events:none;z-index:0}
     .hero h1{font-size:4rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;color:#fff;position:relative;z-index:1;text-shadow:0 2px 20px rgba(0,0,0,0.3)}
@@ -162,10 +163,8 @@
   </header>
   <main>
     <section class="hero">
-      <video class="hero-video" autoplay muted playsinline preload="none" id="heroVideo">
-        <source src="/static/video/1.webm" type="video/webm">
-        <source src="/static/video/1.mp4" type="video/mp4">
-      </video>
+      <video class="hero-video" autoplay muted playsinline preload="none" id="heroVideo"></video>
+      <video class="hero-video hero-video-prebuffer" muted playsinline preload="auto" id="heroVideoNext" aria-hidden="true"></video>
       <div class="hero-overlay"></div>
       <h1><span class="egg" id="egg-record">记录生活</span><span>，</span><span class="egg" id="egg-freeze">定格美好</span></h1>
       <p><span class="egg" id="egg-capture">用镜头捕捉每一个值得珍藏的瞬间</span></p>
@@ -236,17 +235,40 @@
     // Lazy load hero video after page load
     window.addEventListener('load', function() {
       var video = document.getElementById('heroVideo');
-      if (video && videoPlaylist.length > 0) {
-        video.preload = 'auto';
-        video.load();
-        // Cycle through videos
-        video.addEventListener('ended', function() {
-          currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
+      var next = document.getElementById('heroVideoNext');
+      if (!video || videoPlaylist.length === 0) return;
+      video.preload = 'auto';
+      video.src = videoPlaylist[0];
+
+      function preloadNext() {
+        if (!next) return;
+        var nIdx = (currentVideoIndex + 1) % videoPlaylist.length;
+        if (next.src.indexOf(videoPlaylist[nIdx]) === -1) {
+          next.src = videoPlaylist[nIdx];
+        }
+      }
+
+      video.addEventListener('loadeddata', function() { video.play().catch(function(){}); });
+      video.load();
+      preloadNext();
+
+      video.addEventListener('ended', function() {
+        // Swap to the pre-buffered next video, then pre-load the following one
+        currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
+        if (next && next.readyState >= 2) {
+          // move pre-buffered source into the visible player
+          video.src = next.src;
+          video.currentTime = 0;
+          video.load();
+          video.play().catch(function(){});
+        } else {
+          // fallback: load directly
           video.src = videoPlaylist[currentVideoIndex];
           video.load();
-video.play().catch(function(){});
-        });
-      }
+          video.play().catch(function(){});
+        }
+        preloadNext();
+      });
     });
 
     var loadingState = document.getElementById('loadingState');
