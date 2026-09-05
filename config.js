@@ -6,7 +6,6 @@ module.exports = {
     social: [
       { label: '小红书', url: 'https://xhslink.com/m/8MA6NoHQesz', brand: 'xiaohongshu' },
       { label: '抖音', url: 'https://v.douyin.com/owyNGXrRXrA/', brand: 'douyin' },
-      { label: '微信：GongzVirAug' },
       { label: '邮箱：jogt@foxmail.com', url: 'mailto:jogt@foxmail.com' }
     ]
   }
