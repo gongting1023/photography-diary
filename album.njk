@@ -60,7 +60,7 @@
     .pagination button:disabled{opacity:.3;cursor:not-allowed}
     .pagination button.active{color:var(--accent);font-weight:600}
     .pagination .page-info{color:var(--muted);font-size:.85rem;padding:0 8px;min-width:60px;text-align:center}
-    .lightbox{position:fixed;inset:0;background:#000;z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease}
+    .lightbox{position:fixed;inset:0;background:#000;z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease;touch-action:none}
     .lightbox.active{opacity:1;pointer-events:auto}
     .lightbox-close{display:none}
     .lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;border-radius:50%;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease,background .25s;font-size:1.1rem;z-index:10;opacity:0}
@@ -68,7 +68,7 @@
     .lightbox-nav.prev{left:20px}
     .lightbox-nav.next{right:20px}
     .lightbox-content{max-width:94vw;max-height:90vh;display:flex;align-items:center;justify-content:center;position:relative;width:100%;overflow:hidden}
-    .lightbox-content img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px;opacity:0;touch-action:none;cursor:zoom-in;will-change:transform;transition:opacity .3s ease}
+    .lightbox-content img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px;opacity:0;touch-action:none;cursor:zoom-in;will-change:transform;transition:opacity .3s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
     .lightbox-content img.loaded{opacity:1}
     .lightbox-content img.panning{cursor:grabbing;transition:none!important}
     .lightbox-content img.zoomed{cursor:grab;transition:none!important}
@@ -458,7 +458,7 @@
     function applyZoom() {
       var img = document.getElementById('lb-img');
       img.classList.remove('zoomed', 'panning');
-      if (zoom <= 1) {
+      if (zoom <= 1 && panX === 0 && panY === 0) {
         img.style.transform = '';
       } else {
         img.style.transform = 'scale(' + zoom + ') translate(' + panX + 'px,' + panY + 'px)';
@@ -478,8 +478,10 @@
       if (e.target === e.currentTarget || e.target.classList.contains('lightbox-content')) closeLightbox();
     });
 
+    // Mobile pan/disambiguation
     document.getElementById('lb-img').addEventListener('click', function(e) {
       e.stopPropagation();
+      if (Date.now() < suppressClickUntil) return;
       document.getElementById('lb-info').classList.toggle('hidden');
     });
 
@@ -500,7 +502,7 @@
       if (e.key === ' ') { e.preventDefault(); document.getElementById('lb-info').classList.toggle('hidden'); }
     });
 
-    // Wheel zoom
+    // Wheel zoom (desktop + mouse)
     document.getElementById('lightbox').addEventListener('wheel', function(e) {
       if (!document.getElementById('lightbox').classList.contains('active')) return;
       if (e.target.closest('.lightbox-nav')) return;
@@ -532,56 +534,169 @@
       if (isPanning) { isPanning = false; applyZoom(); }
     });
 
-    // Double-click reset
+    // Double-click reset (skip only when a touch double-tap gesture just ran)
     document.getElementById('lb-img').addEventListener('dblclick', function(e) {
+      if (Date.now() < suppressClickUntil) return;
       e.preventDefault();
       if (zoom > 1) { resetZoom(); showZoomPct(); }
       else { zoom = 2; applyZoom(); showZoomPct(); }
     });
 
-    // Swipe
-    let touchStartX = 0, touchEndX = 0, touchStartY = 0;
-    var isPinching = false;
-    var lastPinchTime = 0;
-    const SWIPE_THRESHOLD = 50;
+    // ── Mobile gestures (iOS-photos-like: pinch zoom, pan, spring-back, double-tap) ──
+    var gMode = 'none';            // 'none' | 'drag' | 'pinch'
+    var gMoved = false;
+    var pinchRef = null;
+    var dragRef = null;
+    var singleStart = null;
+    var lastTapT = 0, lastTapPoint = null;
+    var animId = 0;
+    var suppressClickUntil = 0;
+    var lbContentEl = document.getElementById('lightbox-content');
 
-    document.getElementById('lightbox').addEventListener('touchstart', function(e) {
-      if (e.touches.length === 1) {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
+    function rectCenter() {
+      var r = lbContentEl.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    function imgDispSize() {
+      var img = document.getElementById('lb-img');
+      var cw = lbContentEl.clientWidth, ch = lbContentEl.clientHeight;
+      var nw = img.naturalWidth || img.clientWidth || cw;
+      var nh = img.naturalHeight || img.clientHeight || ch;
+      if (!nw || !nh) return { w: cw, h: ch, cw: cw, ch: ch };
+      var s = Math.min(cw / nw, ch / nh);
+      return { w: nw * s, h: nh * s, cw: cw, ch: ch };
+    }
+    function panRange() {
+      var d = imgDispSize();
+      var rx = Math.max(0, d.w / 2 - d.cw / (2 * zoom));
+      var ry = Math.max(0, d.h / 2 - d.ch / (2 * zoom));
+      return { minX: -rx, maxX: rx, minY: -ry, maxY: ry };
+    }
+    function softClamp(v, min, max) {
+      if (min > max) { min = 0; max = 0; }
+      if (v < min) return min + (v - min) * 0.35;
+      if (v > max) return max + (v - max) * 0.35;
+      return v;
+    }
+    function stopAnim() { animId++; }
+    function animateTo(z, px, py, ms) {
+      stopAnim();
+      var id = ++animId, z0 = zoom, px0 = panX, py0 = panY, t0 = performance.now();
+      function frame(t) {
+        if (id !== animId) return;
+        var p = Math.min(1, (t - t0) / ms);
+        if (p < 0) p = 0;
+        var e = 1 - Math.pow(1 - p, 3);
+        zoom = z0 + (z - z0) * e;
+        panX = px0 + (px - px0) * e;
+        panY = py0 + (py - py0) * e;
+        applyZoom();
+        if (p < 1) requestAnimationFrame(frame);
       }
-    }, { passive: true });
+      requestAnimationFrame(frame);
+    }
+    function settle() {
+      var r = panRange();
+      var tz = zoom < 1 ? 1 : zoom;
+      var tx = Math.max(r.minX, Math.min(r.maxX, panX));
+      var ty = Math.max(r.minY, Math.min(r.maxY, panY));
+      if (tz !== zoom || tx !== panX || ty !== panY) animateTo(tz, tx, ty, 280);
+    }
+    function doubleTapZoom(x, y) {
+      if (zoom > 1) { animateTo(1, 0, 0, 260); return; }
+      var c = rectCenter();
+      var cx = x - c.x, cy = y - c.y;
+      var Z = 2.5;
+      var px = cx / Z - cx, py = cy / Z - cy;
+      zoom = Z; panX = px; panY = py;
+      var r = panRange();
+      var tx = Math.max(r.minX, Math.min(r.maxX, px));
+      var ty = Math.max(r.minY, Math.min(r.maxY, py));
+      zoom = 1; panX = 0; panY = 0;
+      animateTo(Z, tx, ty, 220);
+    }
 
-    document.getElementById('lightbox').addEventListener('touchend', function(e) {
-      if (!isPinching && e.changedTouches.length === 1 && Date.now() - lastPinchTime > 300) {
-        touchEndX = e.changedTouches[0].screenX;
-        var dy = Math.abs(e.changedTouches[0].screenY - touchStartY);
-        var dx = Math.abs(touchStartX - touchEndX);
-        if (dx > SWIPE_THRESHOLD && dx > dy * 2) {
-          if (touchStartX - touchEndX > 0) nextImage(); else prevImage();
-        }
-      }
-    }, { passive: true });
-
-    // Pinch zoom (touch)
-    var lastDist = 0;
-    document.getElementById('lightbox').addEventListener('touchmove', function(e) {
+    lbContentEl.addEventListener('touchstart', function(e) {
+      stopAnim();
+      gMoved = false;
       if (e.touches.length === 2) {
-        isPinching = true;
-        e.preventDefault();
-        var dx = e.touches[0].clientX - e.touches[1].clientX;
-        var dy = e.touches[0].clientY - e.touches[1].clientY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        if (lastDist) {
-          zoom = Math.max(1, Math.min(5, zoom + (dist - lastDist) * 0.01));
-          applyZoom();
-          showZoomPct();
+        gMode = 'pinch';
+        var t = e.touches, c = rectCenter();
+        var c0x = (t[0].clientX + t[1].clientX) / 2 - c.x;
+        var c0y = (t[0].clientY + t[1].clientY) / 2 - c.y;
+        var d0 = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        pinchRef = { z0: zoom, px0: panX, py0: panY, cx0: c0x, cy0: c0y, d0: d0 };
+        dragRef = null; singleStart = null; lastTapT = 0; lastTapPoint = null;
+      } else if (e.touches.length === 1) {
+        var t0 = e.touches[0];
+        singleStart = { x: t0.clientX, y: t0.clientY, t: e.timeStamp };
+        if (zoom > 1) {
+          gMode = 'drag';
+          dragRef = { px0: panX, py0: panY, x0: t0.clientX, y0: t0.clientY };
+        } else {
+          gMode = 'none';
         }
-        lastDist = dist;
+      }
+    }, { passive: true });
+
+    lbContentEl.addEventListener('touchmove', function(e) {
+      if (!document.getElementById('lightbox').classList.contains('active')) return;
+      if (gMode === 'pinch' && e.touches.length === 2 && pinchRef) {
+        gMoved = true;
+        e.preventDefault();
+        var t = e.touches, c = rectCenter();
+        var cx = (t[0].clientX + t[1].clientX) / 2 - c.x;
+        var cy = (t[0].clientY + t[1].clientY) / 2 - c.y;
+        var d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        var z = Math.max(0.7, Math.min(5, pinchRef.z0 * (d / Math.max(1, pinchRef.d0))));
+        panX = pinchRef.px0 - pinchRef.cx0 / pinchRef.z0 + cx / z;
+        panY = pinchRef.py0 - pinchRef.cy0 / pinchRef.z0 + cy / z;
+        zoom = z;
+        applyZoom();
+      } else if (gMode === 'drag' && e.touches.length === 1 && dragRef) {
+        gMoved = true;
+        var t0 = e.touches[0];
+        var r = panRange();
+        panX = softClamp(dragRef.px0 + (t0.clientX - dragRef.x0) / zoom, r.minX, r.maxX);
+        panY = softClamp(dragRef.py0 + (t0.clientY - dragRef.y0) / zoom, r.minY, r.maxY);
+        applyZoom();
       }
     }, { passive: false });
 
-    document.getElementById('lightbox').addEventListener('touchend', function() { lastDist = 0; isPinching = false; lastPinchTime = Date.now(); }, { passive: true });
+    lbContentEl.addEventListener('touchend', function(e) {
+      if (gMode === 'pinch' || gMode === 'drag') {
+        gMode = 'none'; pinchRef = null; dragRef = null;
+        if (gMoved) suppressClickUntil = Date.now() + 350;
+        settle();
+        return;
+      }
+      var st = singleStart;
+      if (!st) return;
+      var ch = e.changedTouches[0];
+      var dx = ch.clientX - st.x, dy = ch.clientY - st.y;
+      var moved = Math.hypot(dx, dy);
+      singleStart = null;
+      // swipe through images only when not zoomed in (like iOS)
+      if (zoom <= 1 && moved > 50 && Math.abs(dx) > Math.abs(dy) * 2) {
+        suppressClickUntil = Date.now() + 400;
+        if (dx < 0) nextImage(); else prevImage();
+        return;
+      }
+      if (moved < 12 && lastTapT &&
+          e.timeStamp - lastTapT < 350 &&
+          lastTapPoint && Math.hypot(ch.clientX - lastTapPoint.x, ch.clientY - lastTapPoint.y) < 40) {
+        suppressClickUntil = Date.now() + 400;
+        lastTapT = 0; lastTapPoint = null;
+        doubleTapZoom(ch.clientX, ch.clientY);
+        return;
+      }
+      if (moved < 12) {
+        lastTapT = e.timeStamp;
+        lastTapPoint = { x: ch.clientX, y: ch.clientY };
+      } else {
+        lastTapT = 0; lastTapPoint = null;
+      }
+    }, { passive: true });
 
     // Mouse move shows/hides nav on desktop
     var navTimer;

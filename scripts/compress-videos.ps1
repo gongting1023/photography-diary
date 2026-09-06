@@ -9,6 +9,10 @@ $mp4Files = Get-ChildItem "$videoDir\*.mp4" | Where-Object { $_.Name -match '^\d
 $toCompress = @()
 foreach ($f in $mp4Files) {
     $webmPath = "$videoDir\$($f.BaseName).webm"
+    if (Test-Path $webmPath) {
+        $wb = Get-Item $webmPath
+        if ($wb.Length -gt 0) { continue }  # already has a valid webm, skip
+    }
     $toCompress += $f
 }
 

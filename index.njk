@@ -39,8 +39,8 @@
     .logo-icon svg{transform:translateX(3px) translateY(1px)}
     .container{max-width:1760px;margin:0 auto;padding:35px 40px 60px;flex:1}
     .hero{text-align:center;position:relative;overflow:hidden;width:100%;aspect-ratio:16/9;margin-top:-64px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-    .hero-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0}
-    .hero-video-prebuffer{position:absolute;width:1px;height:1px;opacity:0;visibility:hidden;pointer-events:none}
+    .hero-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0;pointer-events:none;transition:opacity .35s ease}
+    .hero-video.is-active{opacity:1}
     .hero-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.18);z-index:0}
     .hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);pointer-events:none;z-index:0}
     .hero h1{font-size:4rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;color:#fff;position:relative;z-index:1;text-shadow:0 2px 20px rgba(0,0,0,0.3)}
@@ -163,8 +163,8 @@
   </header>
   <main>
     <section class="hero">
-      <video class="hero-video" autoplay muted playsinline preload="none" id="heroVideo"></video>
-      <video class="hero-video hero-video-prebuffer" muted playsinline preload="auto" id="heroVideoNext" aria-hidden="true"></video>
+      <video class="hero-video is-active" muted playsinline webkit-playsinline x5-playsinline preload="auto" id="heroVideo"></video>
+      <video class="hero-video" muted playsinline webkit-playsinline x5-playsinline preload="auto" id="heroVideoNext" aria-hidden="true"></video>
       <div class="hero-overlay"></div>
       <h1><span class="egg" id="egg-record">记录生活</span><span>，</span><span class="egg" id="egg-freeze">定格美好</span></h1>
       <p><span class="egg" id="egg-capture">用镜头捕捉每一个值得珍藏的瞬间</span></p>
@@ -203,72 +203,114 @@
     function blurUrl(url){return url.replace('f_auto,q_auto','w_30,e_blur:200,f_auto,q_auto:eco')}
     function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
     
-    // Hero video playlist
+    // Hero video playlist (auto-generated from static/video at build time)
     var videoPlaylist = [
-      '/static/video/1.webm',
-      '/static/video/2.webm',
-      '/static/video/3.webm',
-      '/static/video/4.webm',
-      '/static/video/5.webm',
-      '/static/video/6.webm',
-      '/static/video/7.webm',
-      '/static/video/8.webm',
-      '/static/video/9.webm',
-      '/static/video/10.webm',
-      '/static/video/11.webm',
-      '/static/video/12.webm',
-      '/static/video/13.webm',
-      '/static/video/14.webm',
-      '/static/video/15.webm',
-      '/static/video/16.webm',
-      '/static/video/17.webm',
-      '/static/video/18.webm',
-      '/static/video/19.webm',
-      '/static/video/20.webm',
-      '/static/video/21.webm',
-      '/static/video/22.webm',
-      '/static/video/23.webm',
-      '/static/video/24.webm'
+{% for v in heroVideos %}
+      '{{ v }}'{{ ',' if not loop.last }}
+{% endfor %}
     ];
-    var currentVideoIndex = 0;
-    
-    // Lazy load hero video after page load
-    window.addEventListener('load', function() {
-      var video = document.getElementById('heroVideo');
-      var next = document.getElementById('heroVideoNext');
-      if (!video || videoPlaylist.length === 0) return;
-      video.preload = 'auto';
-      video.src = videoPlaylist[0];
+    var activePlayer = null, standbyPlayer = null;
+    var warming = false;
+    var prerolling = false;
 
-      function preloadNext() {
-        if (!next) return;
-        var nIdx = (currentVideoIndex + 1) % videoPlaylist.length;
-        if (next.src.indexOf(videoPlaylist[nIdx]) === -1) {
-          next.src = videoPlaylist[nIdx];
+    window.addEventListener('load', function() {
+      var elA = document.getElementById('heroVideo');
+      var elB = document.getElementById('heroVideoNext');
+      if (!elA || videoPlaylist.length === 0) return;
+      if (videoPlaylist.length === 1) {
+        elA.src = videoPlaylist[0];
+        elA.load();
+        elA.play().catch(function(){});
+        return;
+      }
+
+      function vidUrl(i) { return videoPlaylist[(i + videoPlaylist.length) % videoPlaylist.length]; }
+      function assignPlayer(p, i) {
+        p.idx = i;
+        if (p.el.getAttribute('src') !== vidUrl(i)) {
+          p.el.src = vidUrl(i);
+          p.el.load();
+          p.el.pause(); // hold at frame 0 until preroll actually starts playback
+        }
+      }
+      function ensureCurrent(p) {
+        assignPlayer(p, p.idx);
+        var pr = p.el.play();
+        if (pr && pr.catch) pr.catch(function(){});
+      }
+
+      // Warm up standby by loading its source so it buffers. Loaded while hidden keeps
+      // mobile browsers streaming it without dual-decode.
+      function maybeWarm() {
+        if (warming) return;
+        var d = activePlayer.el.duration;
+        if (!isFinite(d) || isNaN(d)) return;
+        if (activePlayer.el.currentTime < d - 2.5) return;
+        warming = true;
+        prerolling = false;
+        assignPlayer(standbyPlayer, (activePlayer.idx + 1) % videoPlaylist.length);
+      }
+
+      // Near the very end, actually start playing the standby so it has live decoded
+      // frames at the swap — no decode stall, no first-frame flash.
+      function maybePreroll() {
+        if (!warming || prerolling) return;
+        var d = activePlayer.el.duration;
+        if (!isFinite(d) || isNaN(d)) return;
+        if (activePlayer.el.currentTime < d - 0.5) return;
+        prerolling = true;
+        var pr = standbyPlayer.el.play();
+        if (pr && pr.catch) pr.catch(function(){});
+      }
+
+      function onEnded() {
+        if (this !== activePlayer.el) return;
+        var out = activePlayer;
+        if (standbyPlayer && standbyPlayer.el.readyState >= 2) {
+          // make sure the standby is live before revealing it
+          var pr = standbyPlayer.el.play();
+          if (pr && pr.catch) pr.catch(function(){});
+          // crossfade: standby fades in while the finished clip fades out — both are real frames
+          standbyPlayer.el.classList.add('is-active');
+          out.el.classList.remove('is-active');
+          // swap bookkeeping synchronously so listeners always see the real active clip
+          activePlayer = { el: standbyPlayer.el, idx: standbyPlayer.idx };
+          standbyPlayer = { el: out.el, idx: out.idx };
+          warming = false;
+          prerolling = false;
+          // once the fade has fully settled, re-assign the hidden element for the next cycle
+          setTimeout(function() {
+            out.el.pause();
+            assignPlayer(standbyPlayer, (activePlayer.idx + 1) % videoPlaylist.length);
+          }, 400);
+        } else {
+          // fallback: restart this clip in place rather than skipping ahead
+          out.el.currentTime = 0;
+          var pr = out.el.play();
+          if (pr && pr.catch) pr.catch(function(){});
+          warming = false;
+          prerolling = false;
+        }
+      }
+      function onError() {
+        if (this === activePlayer.el) {
+          setTimeout(function(){ ensureCurrent(activePlayer); }, 1200);
         }
       }
 
-      video.addEventListener('loadeddata', function() { video.play().catch(function(){}); });
-      video.load();
-      preloadNext();
+      elA.addEventListener('timeupdate', maybeWarm);
+      elB.addEventListener('timeupdate', maybeWarm);
+      elA.addEventListener('timeupdate', maybePreroll);
+      elB.addEventListener('timeupdate', maybePreroll);
+      elA.addEventListener('ended', onEnded);
+      elB.addEventListener('ended', onEnded);
+      elA.addEventListener('error', onError);
+      elB.addEventListener('error', onError);
 
-      video.addEventListener('ended', function() {
-        // Swap to the pre-buffered next video, then pre-load the following one
-        currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
-        if (next && next.readyState >= 2) {
-          // move pre-buffered source into the visible player
-          video.src = next.src;
-          video.currentTime = 0;
-          video.load();
-          video.play().catch(function(){});
-        } else {
-          // fallback: load directly
-          video.src = videoPlaylist[currentVideoIndex];
-          video.load();
-          video.play().catch(function(){});
-        }
-        preloadNext();
-      });
+      activePlayer = { el: elA, idx: 0 };
+      standbyPlayer = { el: elB, idx: 1 };
+      ensureCurrent(activePlayer);
+      assignPlayer(standbyPlayer, 1);
     });
 
     var loadingState = document.getElementById('loadingState');
