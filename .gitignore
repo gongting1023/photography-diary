@@ -6,3 +6,4 @@ _site/
 .env.local
 .env.*.local
 .idea/
+.workbuddy/

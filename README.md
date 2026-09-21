@@ -20,7 +20,7 @@
 ## 功能特性
 
 - 📷 **Cloudinary 图床** — 照片传上 Cloudinary，网站按文件夹自动生成相册
-- 🎞️ **全屏视频 Hero** — 24 段压缩 WebM 视频循环自动播放，16:9 无裁切铺满首屏，沉浸式夜境氛围
+- 🎞️ **全屏视频 Hero** — 多段压缩 WebM 视频循环自动播放，16:9 无裁切铺满首屏，沉浸式夜境氛围
 - 🖼️ **专业图片查看器** — 点击照片全屏浏览，支持键盘 ← →、鼠标滚轮缩放、双指捏合、双击放大、拖拽平移、滑动手势
 - 📱 **全端适配** — 电脑、平板、手机都能完美显示，手机端单独优化（大触摸按钮、EXIF 常显）
 - 🌙 **固定深色主题** — 固定暗色沉浸式风格，iOS 风格毛玻璃效果
@@ -50,7 +50,7 @@
 
 ### 🖼️ Cloudinary（图床 + CDN）
 
-**为什么选它？** 免费版提供 25GB 存储空间和 25GB 月流量，对个人摄影网站完全够用。
+**为什么选它？** 免费版提供 25GB 存储空间和每月额度，对个人摄影网站基本够用（具体额度以 [官网](https://cloudinary.com/pricing) 为准）。
 
 - 自动图片优化和 CDN 加速，加载速度快
 - 支持按文件夹分类，网站自动按文件夹生成相册
@@ -144,7 +144,9 @@ npm run dev
 
 浏览器打开 http://localhost:1023 就能看到效果了。
 
-> ⚠️ **注意**：首次加载相册时可能需要等待 10-30 秒，因为本地服务器需要从 Cloudinary API 拉取所有照片数据。这是正常的，后续访问会使用内存缓存，速度会快很多。部署到 Netlify 后也有 CDN 缓存加速。
+> ⚠️ **改完模板必须重新构建**：`npm run dev` 只是启动静态服务器 + Cloudinary 代理，**不带热重载**。修改 `index.njk` / `album.njk` 等模板后，要重新跑一次 `npm run build`，刷新浏览器才会生效。
+
+> ⚠️ **首次加载较慢**：相册列表需要从 Cloudinary API 拉取全部照片数据，可能要等 10-30 秒，这是正常的。后续访问走内存缓存会快很多，部署到 Netlify 后也有 CDN 缓存加速。
 
 **构建生产版本**
 
@@ -158,18 +160,32 @@ npm run build
 
 ## Hero 视频优化
 
-首页首屏会循环播放多段 Hero 视频。为了兼顾画质与加载速度，视频已压缩为 **WebM（VP9/1080p/CRF 26/无声，每段约 8 秒）**，存于 `static/video/`，构建时由 `.eleventy.js` 透传复制到 `_site`。
+首页首屏会循环播放多段 Hero 视频。为了兼顾画质与加载速度，视频统一压缩为 **WebM（VP9 / 1080p / CRF 26 / 无声，每段 8 秒）**，存于 `static/video/`，构建时由 `.eleventy.js` 透传复制到 `_site`。
 
-如需重新压缩视频（比如更换视频源），可用脚本批量处理：
+> ⚠️ **体积提醒**
+>
+> 本项目自带 **117 段视频、合计约 547MB**，会影响两件事：
+>
+> 1. **仓库 clone 很慢** —— 想学习代码的人第一步就要拖 547MB；
+> 2. **Netlify 免费版月流量约 100GB** —— 而 Hero 视频是**循环播放**的，访客停留 5 分钟约消耗 175MB，页面一直挂着的话 1 小时能吃掉 2GB。**不到 50 个挂机访客就可能把整月额度用光**，超限后站点会被暂停。
+>
+> **建议**：如果你只是想要一个能跑的相册站，先把 `static/video/` 清空或只留少数几段——**视频为空时首屏会自动降级，不影响其他任何功能**。
+>
+> 想保留氛围又控制流量，可以只留体积小的段。本项目的体积分布很不均匀：**17 段（>8MB）就占了全部体积的 49%，而 44 段（≤2MB）加起来只有 50MB**。只保留后者的话，同样 5 分钟的会话流量能降到 43MB。
+
+### 重新压缩视频
+
+如需更换视频源或重新压缩，把 MP4 放进 `static/video/` 后运行：
 
 ```powershell
-# 将 MP4 视频放到 static/video 后，运行：
 powershell -ExecutionPolicy Bypass -File scripts/compress-videos.ps1
 ```
 
-脚本会并行（每次 4 个）把 `static/video/*.mp4` 转成 WebM，覆盖同名 `.webm` 文件。
+脚本会并行（每次 4 个）把 `static/video/*.mp4` 转成 WebM，覆盖同名 `.webm`；已存在且非空的 `.webm` 会被自动跳过（想强制重压就先删掉它）。参数写在脚本开头：`$crf = 26`、`$duration = 8`，缩放比例在 `-vf scale=1920:1080`。
 
-> 注意：GitHub 单文件硬上限为 100MB，视频压缩后应尽量保持单文件小于 50MB，避免 push 被拒绝或仓库过大。
+> ⚠️ **请自行留存源 MP4**。一旦只剩 WebM，再次压缩就变成**二次有损压缩**——原版的压缩伪影本身也占码率，体积降幅会大打折扣（实测 CRF 26 → 34 只能降约 39%）。
+>
+> 另注：GitHub 单文件硬上限 100MB，建议单文件控制在 50MB 以内，避免 push 被拒或仓库过大。
 
 ---
 
@@ -190,23 +206,35 @@ photography-diary/
 ├── config.js            # 网站配置（名称、标题、社交链接）
 ├── index.njk            # 首页模板（视频 Hero、相册网格、分页、彩蛋）
 ├── album.njk            # 相册详情页模板（照片网格、灯箱查看器）
+├── exhibition.njk       # 3D 摄影展览页（Three.js，当前 301 跳转到首页）
+├── donate.html          # 打赏页
 ├── manifest.njk         # PWA 清单（可安装到桌面）
-├── _data/site.js        # 读取 config.js 供模板使用
+├── favicon.svg          # 站点图标
+├── _data/
+│   └── site.js          # 读取 config.js 供模板使用
+├── _includes/
+│   └── layouts/         # Eleventy 布局目录
 ├── .eleventy.js         # Eleventy 构建配置（含 static 静态资源拷贝）
 ├── static/
-│   ├── video/           # 首屏 Hero 视频（1-24.webm，压缩后的 WebM）
+│   ├── video/           # 首屏 Hero 视频（WebM，段数可自定义）
+│   ├── exhibition.css   # 3D 展览页样式
+│   ├── exhibition.js    # 3D 展览页脚本
 │   └── ...              # 其他静态资源
 ├── netlify/
 │   └── functions/       # API 接口（保护密钥）
 │       ├── albums.js    # 相册列表 API
 │       └── album.js     # 单个相册详情 API
 ├── scripts/
-│   ├── local-api.js     # 本地开发 API 服务器
-│   └── compress-videos.ps1  # 视频批量压缩脚本（MP4 → WebM）
+│   ├── local-api.js             # 本地开发 API 服务器
+│   ├── compress-videos.ps1      # 视频批量压缩（MP4 → WebM）
+│   ├── compress-photos.js       # 照片压缩
+│   └── upload-to-cloudinary.js  # 批量上传照片到 Cloudinary
+├── demo/                # 演示页
+├── server.js            # 纯静态预览服务器（端口 8080，仅服务 _site/，不含 API 代理）
 ├── .env                 # 环境变量（不上传）
 ├── .env.example         # 环境变量模板
-├── netlify.toml         # Netlify 部署配置
-└── _redirects           # SPA 路由规则
+├── netlify.toml         # Netlify 部署配置（路由重定向 + 安全响应头）
+└── _site/               # 构建产物（npm run build 生成，不上传）
 ```
 
 ---
@@ -229,13 +257,20 @@ photography-diary/
 2. 在域名服务商（如阿里云、Cloudflare）配置 DNS，添加 CNAME 记录指向 Netlify
 3. 建议配合 Cloudflare 使用，可获得额外 CDN 加速和 DDoS 防护
 
-### SPA 路由说明
+### 路由说明
 
-相册详情页的 URL 格式为 `/album/文件夹名`，需要 Netlify 将 `/album/*` 的请求重定向到 `/album/index.html`。配置在项目根目录的 `_redirects` 文件中：
+相册详情页的 URL 格式为 `/album/文件夹名`，但它是纯静态页面，需要把 `/album/*` 的请求重写到 `/album/index.html`。这条规则配置在根目录的 **`netlify.toml`** 中：
 
+```toml
+[[redirects]]
+  from = "/album/*"
+  to = "/album/index.html"
+  status = 200
 ```
-/album/*  /album/index.html  200
-```
+
+同一个文件里还包含：`/api/*` 到 Netlify Functions 的转发、`/exhibition` 到首页的 301 跳转，以及全站的 `X-Frame-Options`、`X-Content-Type-Options` 等安全响应头。
+
+> 💡 也可以用 Netlify 传统的 `_redirects` 文件，但本项目的构建目录是 `_site/`，需要额外在 `.eleventy.js` 里加一行 `addPassthroughCopy("_redirects")` 才会被复制进去——所以这里统一用 `netlify.toml` 更省事。
 
 ---
 

@@ -38,14 +38,15 @@
     .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.9rem;transition:all .2s;margin-bottom:28px;padding:6px 0}
     .back-link:hover{color:var(--accent)}
     .back-link svg{width:16px;height:16px}
-    .album-header{margin-bottom:36px}
-    .album-date{font-size:2.5rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;color:var(--text)}
-    .album-count{color:var(--muted);font-size:.95rem;display:flex;align-items:center;gap:6px}
-    .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;animation:gridIn .45s ease}
-    @keyframes gridIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-    #albumContent{animation:contentIn .3s ease}
-    @keyframes contentIn{0%{opacity:0}100%{opacity:1}}
-    .photo-item{aspect-ratio:4/3;border-radius:14px;overflow:hidden;cursor:pointer;position:relative;background:var(--card);transition:transform .45s cubic-bezier(.34,1.56,.64,1),box-shadow .45s ease;will-change:transform}
+    .album-header{position:sticky;top:var(--header-h,52px);z-index:40;background:var(--bg);margin-bottom:22px;padding:10px 0 12px;transition:padding .22s ease}
+    .album-date{font-size:2.5rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;color:var(--text);transition:font-size .22s ease,margin-bottom .22s ease}
+    .album-count{color:var(--muted);font-size:.95rem;display:flex;align-items:center;gap:6px;max-height:32px;overflow:hidden;transition:opacity .18s ease,max-height .22s ease}
+    .album-header.compact{padding:6px 0 8px}
+    .album-header.compact .album-date{font-size:1rem;margin-bottom:0}
+    .album-header.compact .album-count{opacity:0;max-height:0}
+    .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;transition:opacity .15s ease}
+    .photo-grid.fading-out{opacity:0}
+    .photo-item{aspect-ratio:4/3;border-radius:14px;overflow:hidden;cursor:pointer;position:relative;background:var(--card);transition:opacity .55s cubic-bezier(.34,1.56,.64,1),transform .5s cubic-bezier(.34,1.56,.64,1),box-shadow .45s ease;will-change:transform}
     .photo-item:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 16px 48px rgba(0,0,0,.08)}
     .photo-item img{width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.16,1,.3,1)}
     .photo-item:hover img{transform:scale(1.04)}
@@ -68,10 +69,16 @@
     .lightbox-nav.prev{left:20px}
     .lightbox-nav.next{right:20px}
     .lightbox-content{max-width:94vw;max-height:90vh;display:flex;align-items:center;justify-content:center;position:relative;width:100%;overflow:hidden}
+    .lb-stage{position:relative;width:100%;height:90vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
     .lightbox-content img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px;opacity:0;touch-action:none;cursor:zoom-in;will-change:transform;transition:opacity .3s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
     .lightbox-content img.loaded{opacity:1}
     .lightbox-content img.panning{cursor:grabbing;transition:none!important}
     .lightbox-content img.zoomed{cursor:grab;transition:none!important}
+    .lb-ambient{position:absolute;inset:0;background-position:center;background-size:cover;filter:blur(48px) saturate(1.4) brightness(.38);transform:scale(1.2);opacity:0;transition:opacity .6s ease;pointer-events:none;z-index:0}
+    .lb-ambient.show{opacity:1}
+    .lb-vignette{position:absolute;inset:0;background:radial-gradient(ellipse 74% 70% at 50% 50%,rgba(0,0,0,0) 0%,rgba(0,0,0,.62) 100%);pointer-events:none;z-index:0}
+    #lb-img-swap{position:absolute;inset:0;margin:auto;opacity:0;transition:opacity .28s ease;pointer-events:none}
+    #lb-img-swap.show{opacity:1}
     .lb-zoom{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:3px 12px;border-radius:8px;color:#fff;font-size:.72rem;pointer-events:none;opacity:0;transition:opacity .25s;z-index:6}
     .lb-zoom.show{opacity:1}
     .lightbox-info{position:absolute;bottom:0;left:0;right:0;padding:50px 30px 28px;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%);display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;transition:opacity .3s}
@@ -140,6 +147,10 @@
       .pagination button{min-width:44px;height:44px}
       .photo-exif{opacity:1}
     }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+      html{scroll-behavior:auto}
+    }
   </style>
 </head>
 <body>
@@ -177,10 +188,16 @@
     </div>
   </main>
   <div id="lightbox" class="lightbox">
+    <div class="lb-ambient" id="lb-ambient-a"></div>
+    <div class="lb-ambient" id="lb-ambient-b"></div>
+    <div class="lb-vignette"></div>
     <button class="lightbox-nav prev" onclick="prevImage()" aria-label="上一张">&#x276E;</button>
     <button class="lightbox-nav next" onclick="nextImage()" aria-label="下一张">&#x276F;</button>
     <div class="lightbox-content" id="lightbox-content">
-      <img id="lb-img" src="" alt="">
+      <div class="lb-stage" id="lb-stage">
+        <img id="lb-img" src="" alt="">
+        <img id="lb-img-swap" src="" alt="" aria-hidden="true">
+      </div>
       <div class="lb-zoom" id="lb-zoom">100%</div>
     </div>
     <div class="lightbox-info hidden" id="lb-info">
@@ -209,6 +226,7 @@
     function srcset(url,w){return url.replace('f_auto,q_auto','w_'+w+',f_auto,q_auto:eco')+' '+w+'w'}
     function blurUrl(url){return url.replace('f_auto,q_auto','w_30,e_blur:200,f_auto,q_auto:eco')}
     function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+    var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var SITE_NAME = '{{ site.siteName }}';
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const folder = decodeURIComponent(pathParts.slice(1).join('/') || pathParts[0] || '');
@@ -302,6 +320,8 @@
     function createPhotoItem(imgData, index) {
       var div = document.createElement('div');
       div.className = 'photo-item';
+      div.style.opacity = '0';
+      div.style.transform = 'translateY(18px)';
       if (window.innerWidth >= 768) div.style.background = 'url(' + blurUrl(imgData.url) + ') center/cover no-repeat var(--card)';
 
       var exifHtml = '<div class="photo-exif"><div class="exif-filename">' + escapeHtml(imgData.filename) + '</div>';
@@ -319,8 +339,8 @@
       var isMobile = window.innerWidth < 768;
       var srcsetWidths = isMobile ? [200, 400] : [200, 400, 800];
       var sizesVal = isMobile ? '(max-width:480px) 45vw, 45vw' : '(max-width:1024px) 30vw, 22vw';
-      div.innerHTML = '<img src="' + escapeHtml(imgData.url) + '" alt="' + escapeHtml(imgData.filename) + '" loading="lazy" srcset="' + srcsetWidths.map(function(w){ return srcset(imgData.url,w); }).join(',') + '" sizes="' + sizesVal + '" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
-      div.addEventListener('click', function(){ openLightbox(index); });
+      div.innerHTML = '<img src="' + escapeHtml(imgData.url) + '" alt="' + escapeHtml(imgData.filename) + '" loading="lazy" srcset="' + escapeHtml(srcsetWidths.map(function(w){ return srcset(imgData.url,w); }).join(',')) + '" sizes="' + sizesVal + '" style="opacity:0;transition:opacity .4s" onload="this.style.opacity=1" onerror="this.style.display=\'none\'">' + exifHtml;
+      div.addEventListener('click', function(){ openLightbox(index, div); });
       return div;
     }
 
@@ -339,6 +359,55 @@
 
       renderPagination();
       preloadNextPhotos(page);
+      observeCards();
+    }
+
+    // 缩略图入场：进入视口才淡入上移，按"该行内序号"错落。
+    // 用内联初始态 + CSS 过渡实现 —— 过渡一结束就没有任何残留状态，hover 上浮不会被 animation fill 压住
+    var cardObserver = null;
+    function revealCard(el) {
+      el.style.transitionDelay = el.dataset.delay || '0s';
+      el.style.opacity = '';
+      el.style.transform = '';
+      setTimeout(function() { el.style.transitionDelay = ''; }, 900);
+    }
+    function observeCards() {
+      var cards = grid.querySelectorAll('.photo-item');
+      if (!cards.length) return;
+      if (REDUCED || !('IntersectionObserver' in window)) {
+        for (var k = 0; k < cards.length; k++) revealCard(cards[k]);
+        return;
+      }
+      if (!cardObserver) {
+        cardObserver = new IntersectionObserver(function(entries) {
+          for (var n = 0; n < entries.length; n++) {
+            var entry = entries[n];
+            if (!entry.isIntersecting) continue;
+            cardObserver.unobserve(entry.target);
+            revealCard(entry.target);
+          }
+        }, { rootMargin: '0px 0px -6% 0px', threshold: 0.01 });
+      }
+      var perRow = window.innerWidth > 1024 ? 3 : 2;
+      for (var j = 0; j < cards.length; j++) {
+        cards[j].dataset.delay = ((j % perRow) * 0.07).toFixed(2) + 's';
+        cardObserver.observe(cards[j]);
+      }
+    }
+
+    // 切页：先淡出旧内容再渲染，避免 innerHTML 清空造成的一帧空白
+    function goToPage(page) {
+      if (REDUCED || page === currentPage) {
+        renderPage(page);
+        window.scrollTo({top:0, behavior:'smooth'});
+        return;
+      }
+      grid.classList.add('fading-out');
+      setTimeout(function() {
+        grid.classList.remove('fading-out');
+        renderPage(page);
+        window.scrollTo({top:0, behavior:'smooth'});
+      }, 150);
     }
 
     function preloadNextPhotos(page) {
@@ -358,29 +427,119 @@
         var btn = document.createElement('button');
         btn.textContent = p;
         btn.className = p === currentPage ? 'active' : '';
-        btn.onclick = (function(page){ return function(){ currentPage = page; renderPage(page); window.scrollTo({top:0, behavior:'smooth'}); }; })(p);
+        btn.onclick = (function(page){ return function(){ goToPage(page); }; })(p);
         pagination.appendChild(btn);
       }
     }
 
     loadAlbum();
 
-    function openLightbox(index) {
+    // 日期标题吸顶收缩（吸顶位置用实测 header 高度，避免硬编码）
+    var albumHeader = document.querySelector('.album-header');
+    var siteHeaderEl = document.querySelector('.site-header');
+    function syncHeaderHeight() {
+      if (siteHeaderEl) document.documentElement.style.setProperty('--header-h', siteHeaderEl.offsetHeight + 'px');
+    }
+    syncHeaderHeight();
+    window.addEventListener('resize', syncHeaderHeight);
+    window.addEventListener('load', syncHeaderHeight);
+
+    var scrollTick = false;
+    function onScrollFrame() {
+      scrollTick = false;
+      if (albumHeader) albumHeader.classList.toggle('compact', window.scrollY > 80);
+    }
+    window.addEventListener('scroll', function() {
+      if (scrollTick) return;
+      scrollTick = true;
+      requestAnimationFrame(onScrollFrame);
+    }, { passive: true });
+    onScrollFrame();
+
+    // 灯箱开关：从被点的缩略图位置放大 / 缩回。变换只施加在 .lb-stage 上，
+    // #lb-img 的 transform 归 applyZoom 管，绝不能碰
+    function openLightbox(index, fromEl) {
+      var lb = document.getElementById('lightbox');
+      var stage = document.getElementById('lb-stage');
+      var isFirstOpen = !lb.classList.contains('active');
+      var from = (isFirstOpen && fromEl) ? fromEl.getBoundingClientRect() : null;
+
+      clearTimeout(closeTimer);
       currentIndex = index;
-      document.getElementById('lightbox').classList.add('active');
+      lb.classList.add('active');
       document.body.style.overflow = 'hidden';
       updateLightbox();
       history.replaceState(null, '', '#photo-' + (index + 1));
+
+      if (!from || REDUCED) return;
+      var to = stage.getBoundingClientRect();
+      if (!to.width || !to.height) return;
+      var sx = from.width / to.width;
+      var sy = from.height / to.height;
+      var dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+      var dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+      // 先写起始状态 → 强制重排确保它生效 → 再启动过渡（比依赖下一帧更可靠）
+      stage.style.transition = 'none';
+      stage.style.transformOrigin = 'center center';
+      stage.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+      void stage.offsetWidth;
+      stage.style.transition = 'transform .48s cubic-bezier(.16,1,.3,1)';
+      stage.style.transform = '';
+      stage.addEventListener('transitionend', function() {
+        stage.style.transition = '';
+        stage.style.transformOrigin = '';
+      }, { once: true });
     }
 
+    // 关灯箱：缩略图还在视口内就缩回去，否则直接淡出
     function closeLightbox() {
-      document.getElementById('lightbox').classList.remove('active');
+      var lb = document.getElementById('lightbox');
+      var stage = document.getElementById('lb-stage');
+      clearTimeout(closeTimer);
+      swapToken++;
+      swapEl.classList.remove('show');
       document.body.style.overflow = '';
       history.replaceState(null, '', window.location.pathname);
+
+      var back = REDUCED ? null : thumbOf(currentIndex);
+      if (!back || !lb.classList.contains('active')) {
+        lb.classList.remove('active');
+        return;
+      }
+      var from = stage.getBoundingClientRect();
+      var to = back.getBoundingClientRect();
+      if (!from.width || !from.height || to.bottom < 0 || to.top > window.innerHeight) {
+        lb.classList.remove('active');
+        return;
+      }
+      var sx = to.width / from.width;
+      var sy = to.height / from.height;
+      var dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+      var dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+      stage.style.transition = 'transform .36s cubic-bezier(.4,0,.6,1)';
+      stage.style.transformOrigin = 'center center';
+      stage.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+      closeTimer = setTimeout(function() {
+        lb.classList.remove('active');
+        stage.style.transition = '';
+        stage.style.transform = '';
+        stage.style.transformOrigin = '';
+      }, 360);
+    }
+
+    // 当前照片对应的缩略图（只存在于当前分页里）
+    function thumbOf(index) {
+      var local = index - (currentPage - 1) * PER_PAGE;
+      if (local < 0 || local >= PER_PAGE) return null;
+      return grid.querySelectorAll('.photo-item')[local] || null;
     }
 
     function getLightboxUrl(url) {
       return url.replace('/upload/f_auto,q_auto', '/upload/w_1600,f_auto,q_auto:eco');
+    }
+
+    function ambientUrl(url) {
+      return url.replace('/upload/f_auto,q_auto', '/upload/w_100,e_blur:1000,f_auto,q_auto:eco');
     }
 
     var imgCache = {};
@@ -391,21 +550,62 @@
       delete imgCache[url];
       imgCache[url] = src;
     }
-    function updateLightbox() {
-      resetZoom();
-      const img = document.getElementById('lb-img');
-      img.classList.remove('loaded');
-      var url = images[currentIndex].url;
-      if (imgCache[url]) {
-        img.src = imgCache[url];
-        img.classList.add('loaded');
-      } else {
-        img.onload = function(){
-          cacheImage(url, img.src);
+
+    // 环境光：用当前照片的低清模糊版铺底，换图时两层交替淡入，避免纯黑底带来的悬空感
+    var ambientEls = [document.getElementById('lb-ambient-a'), document.getElementById('lb-ambient-b')];
+    var ambientIdx = 0, ambientCurrent = '';
+    function setAmbient(url) {
+      if (url === ambientCurrent) return;
+      ambientCurrent = url;
+      var next = ambientEls[1 - ambientIdx];
+      next.style.backgroundImage = 'url("' + ambientUrl(url) + '")';
+      next.classList.add('show');
+      ambientEls[ambientIdx].classList.remove('show');
+      ambientIdx = 1 - ambientIdx;
+    }
+
+    // 换图过渡：主图始终保留旧画面，新图就绪后由过渡层交叉盖上，主图在其覆盖下静默替换
+    var swapEl = document.getElementById('lb-img-swap');
+    var swapToken = 0;
+    var closeTimer = null;
+    function revealPhoto(url) {
+      var img = document.getElementById('lb-img');
+      var token = ++swapToken;
+      var src = imgCache[url] || getLightboxUrl(url);
+
+      if (!img.classList.contains('loaded')) {
+        // 灯箱首次打开：没有旧画面需要保留，主图直接淡入
+        img.onload = function() {
+          cacheImage(url, src);
           this.classList.add('loaded');
         };
-        img.src = getLightboxUrl(url);
+        img.src = src;
+        return;
       }
+
+      var pre = new Image();
+      pre.onload = function() {
+        if (token !== swapToken) return;
+        cacheImage(url, src);
+        swapEl.src = src;
+        swapEl.classList.add('show');
+        img.src = src;
+        var done = function() {
+          if (token === swapToken) swapEl.classList.remove('show');
+        };
+        if (img.decode) { img.decode().then(done, done); } else { setTimeout(done, 60); }
+      };
+      pre.onerror = function() {
+        if (token !== swapToken) return;
+        swapEl.classList.remove('show');
+      };
+      pre.src = src;
+    }
+    function updateLightbox() {
+      resetZoom();
+      var url = images[currentIndex].url;
+      setAmbient(url);
+      revealPhoto(url);
 
       const data = images[currentIndex];
       document.getElementById('lb-filename').textContent = data.filename;
@@ -458,12 +658,13 @@
     function applyZoom() {
       var img = document.getElementById('lb-img');
       img.classList.remove('zoomed', 'panning');
-      if (zoom <= 1 && panX === 0 && panY === 0) {
-        img.style.transform = '';
-      } else {
-        img.style.transform = 'scale(' + zoom + ') translate(' + panX + 'px,' + panY + 'px)';
+      var t = '';
+      if (zoom > 1 || panX !== 0 || panY !== 0) {
+        t = 'scale(' + zoom + ') translate(' + panX + 'px,' + panY + 'px)';
         img.classList.add(isPanning ? 'panning' : 'zoomed');
       }
+      img.style.transform = t;
+      swapEl.style.transform = t;
     }
 
     function showZoomPct() {

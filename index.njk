@@ -41,36 +41,19 @@
     .hero{text-align:center;position:relative;overflow:hidden;width:100%;aspect-ratio:16/9;margin-top:-64px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
     .hero-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0;pointer-events:none;transition:opacity .35s ease}
     .hero-video.is-active{opacity:1}
-    .hero-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.18);z-index:0}
-    .hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);pointer-events:none;z-index:0}
-    .hero h1{font-size:4rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;color:#fff;position:relative;z-index:1;text-shadow:0 2px 20px rgba(0,0,0,0.3)}
-    .hero p{color:rgba(255,255,255,0.85);font-size:1.2rem;max-width:480px;margin:0 auto;letter-spacing:0.02em;line-height:1.5;position:relative;z-index:1;text-shadow:0 1px 10px rgba(0,0,0,0.3)}
-    .albums{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-    .album{border-radius:16px;overflow:hidden;cursor:pointer;opacity:0;transform:translateY(24px);animation:fadeInUp .6s cubic-bezier(.16,1,.3,1) forwards;transition:transform .45s cubic-bezier(.34,1.56,.64,1),box-shadow .45s ease;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+    .hero-video.intro{animation:heroIn 1.7s cubic-bezier(.16,1,.3,1) both}
+    @keyframes heroIn{from{transform:scale(1.045)}to{transform:scale(1)}}
+    .hero-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 58% 46% at 50% 46%,rgba(0,0,0,0.42) 0%,rgba(0,0,0,0.22) 52%,rgba(0,0,0,0.1) 100%);z-index:0}
+    .hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%) translate(var(--gx,0px),var(--gy,0px));width:600px;height:600px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);pointer-events:none;z-index:0;transition:transform .55s cubic-bezier(.16,1,.3,1)}
+    .hero h1{font-size:4rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;color:#fff;position:relative;z-index:1;text-shadow:0 2px 20px rgba(0,0,0,0.3);animation:heroTextIn .8s cubic-bezier(.16,1,.3,1) .18s both}
+    .hero p{color:rgba(255,255,255,0.85);font-size:1.2rem;max-width:480px;margin:0 auto;letter-spacing:0.02em;line-height:1.5;position:relative;z-index:1;text-shadow:0 1px 10px rgba(0,0,0,0.3);animation:heroTextIn .8s cubic-bezier(.16,1,.3,1) .32s both}
+    @keyframes heroTextIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+    .albums{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;transition:opacity .15s ease}
+    .albums.fading-out{opacity:0}
+    .album{border-radius:16px;overflow:hidden;cursor:pointer;transition:opacity .55s cubic-bezier(.34,1.56,.64,1),transform .55s cubic-bezier(.34,1.56,.64,1),box-shadow .45s ease;box-shadow:0 2px 8px rgba(0,0,0,.03)}
     .album:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 24px 56px rgba(0,0,0,.08)}
-    @keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
-    .album:nth-child(1){animation-delay:.05s}
-    .album:nth-child(2){animation-delay:.1s}
-    .album:nth-child(3){animation-delay:.15s}
-    .album:nth-child(4){animation-delay:.2s}
-    .album:nth-child(5){animation-delay:.25s}
-    .album:nth-child(6){animation-delay:.3s}
-    .album:nth-child(7){animation-delay:.35s}
-    .album:nth-child(8){animation-delay:.4s}
-    .album:nth-child(9){animation-delay:.45s}
-    .album:nth-child(10){animation-delay:.5s}
-    .album:nth-child(11){animation-delay:.55s}
-    .album:nth-child(12){animation-delay:.6s}
-    .album:nth-child(13){animation-delay:.65s}
-    .album:nth-child(14){animation-delay:.7s}
-    .album:nth-child(15){animation-delay:.75s}
-    .album:nth-child(16){animation-delay:.8s}
-    .album:nth-child(17){animation-delay:.85s}
-    .album:nth-child(18){animation-delay:.9s}
-    .album:nth-child(19){animation-delay:.95s}
-    .album:nth-child(20){animation-delay:1s}
     .album-cover{aspect-ratio:3/2;overflow:hidden;position:relative;background:var(--card);border-radius:16px}
-    .album-cover img{width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.16,1,.3,1)}
+    .album-cover img{width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.16,1,.3,1),opacity .5s ease}
     .album-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.4) 0%,transparent 35%);opacity:0;transition:opacity .4s ease}
     .album:hover .album-cover img{transform:scale(1.07)}
     .album:hover .album-cover::after{opacity:1}
@@ -142,10 +125,13 @@
     }
     @media(max-width:520px){
       .albums{grid-template-columns:1fr;gap:20px}
-      .album{animation-delay:0s!important}
       .pagination button{min-width:44px;height:44px}
       .hero h1{font-size:1.9rem}
       .container{padding:30px 14px 30px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+      html{scroll-behavior:auto}
     }
   </style>
 </head>
@@ -202,6 +188,7 @@
     function srcset(url,w){return url.replace('f_auto,q_auto','w_'+w+',f_auto,q_auto:eco')+' '+w+'w'}
     function blurUrl(url){return url.replace('f_auto,q_auto','w_30,e_blur:200,f_auto,q_auto:eco')}
     function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+    var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
     // Hero video playlist (auto-generated from static/video at build time)
     var videoPlaylist = [
@@ -213,10 +200,18 @@
     var warming = false;
     var prerolling = false;
 
+    // 首屏落定：视频首帧就绪后做一次轻微推入，仅首次、不循环
+    function startHeroIntro(v) {
+      if (REDUCED || v.classList.contains('intro')) return;
+      v.classList.add('intro');
+      v.addEventListener('animationend', function() { v.classList.remove('intro'); }, { once: true });
+    }
+
     window.addEventListener('load', function() {
       var elA = document.getElementById('heroVideo');
       var elB = document.getElementById('heroVideoNext');
       if (!elA || videoPlaylist.length === 0) return;
+      elA.addEventListener('loadeddata', function() { startHeroIntro(elA); }, { once: true });
       if (videoPlaylist.length === 1) {
         elA.src = videoPlaylist[0];
         elA.load();
@@ -312,6 +307,25 @@
       ensureCurrent(activePlayer);
       assignPlayer(standbyPlayer, 1);
     });
+
+    // Hero 光晕跟随鼠标：只做轻微偏移，靠 CSS 缓动跟随，保持克制
+    (function() {
+      var heroEl = document.querySelector('.hero');
+      if (!heroEl || REDUCED) return;
+      var tick = false, gx = 0, gy = 0;
+      heroEl.addEventListener('mousemove', function(e) {
+        var r = heroEl.getBoundingClientRect();
+        gx = ((e.clientX - r.left) / r.width - 0.5) * 80;
+        gy = ((e.clientY - r.top) / r.height - 0.5) * 50;
+        if (tick) return;
+        tick = true;
+        requestAnimationFrame(function() {
+          tick = false;
+          heroEl.style.setProperty('--gx', gx.toFixed(1) + 'px');
+          heroEl.style.setProperty('--gy', gy.toFixed(1) + 'px');
+        });
+      }, { passive: true });
+    })();
 
     var loadingState = document.getElementById('loadingState');
     var errorState = document.getElementById('errorState');
@@ -441,6 +455,8 @@
 
         let article = document.createElement('article');
         article.className = 'album';
+        article.style.opacity = '0';
+        article.style.transform = 'translateY(24px)';
 
         let cover = document.createElement('div');
         cover.className = 'album-cover';
@@ -474,6 +490,56 @@
 
       renderPagination();
       preloadNextPage(page);
+      observeCards();
+    }
+
+    // 卡片入场：进入视口才淡入上移，按"该行内序号"错落（取代原来写死的 nth-child 延迟）。
+    // 用内联初始态 + CSS 过渡实现 —— 过渡一结束就没有任何残留状态，hover 上浮不会被 animation fill 压住
+    var cardObserver = null;
+    function revealCard(el) {
+      el.style.transitionDelay = el.dataset.delay || '0s';
+      el.style.opacity = '';
+      el.style.transform = '';
+      setTimeout(function() { el.style.transitionDelay = ''; }, 900);
+    }
+    function observeCards() {
+      var cards = grid.querySelectorAll('.album');
+      if (!cards.length) return;
+      if (REDUCED || !('IntersectionObserver' in window)) {
+        for (var k = 0; k < cards.length; k++) revealCard(cards[k]);
+        return;
+      }
+      if (!cardObserver) {
+        cardObserver = new IntersectionObserver(function(entries) {
+          for (var n = 0; n < entries.length; n++) {
+            var entry = entries[n];
+            if (!entry.isIntersecting) continue;
+            cardObserver.unobserve(entry.target);
+            revealCard(entry.target);
+          }
+        }, { rootMargin: '0px 0px -6% 0px', threshold: 0.01 });
+      }
+      var perRow = window.innerWidth > 1024 ? 3 : (window.innerWidth > 520 ? 2 : 1);
+      for (var j = 0; j < cards.length; j++) {
+        cards[j].dataset.delay = ((j % perRow) * 0.07).toFixed(2) + 's';
+        cardObserver.observe(cards[j]);
+      }
+    }
+
+    // 切页：先让旧内容淡出，避免 innerHTML 清空造成的一帧空白
+    function goToPage(page) {
+      sessionStorage.setItem('pg', page);
+      if (REDUCED || page === currentPage) {
+        renderPage(page);
+        window.scrollTo({top:0, behavior:'smooth'});
+        return;
+      }
+      grid.classList.add('fading-out');
+      setTimeout(function() {
+        grid.classList.remove('fading-out');
+        renderPage(page);
+        window.scrollTo({top:0, behavior:'smooth'});
+      }, 150);
     }
 
     function preloadNextPage(page) {
@@ -500,7 +566,7 @@
         var btn = document.createElement('button');
         btn.textContent = p;
         btn.className = p === currentPage ? 'active' : '';
-        btn.onclick = (function(page){ return function(){ currentPage = page; sessionStorage.setItem('pg', page); renderPage(page); window.scrollTo({top:0, behavior:'smooth'}); }; })(p);
+        btn.onclick = (function(page){ return function(){ goToPage(page); }; })(p);
         pagination.appendChild(btn);
       }
     }
