@@ -38,21 +38,24 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 }
 
-// 并发池：限制同时发起的请求数，避免触发 Cloudinary 免费版限流（429）
-async function mapLimit(items, limit, fn) {
-  const results = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const idx = next++;
-      results[idx] = await fn(items[idx], idx);
-    }
-  }
-  const workers = [];
-  const n = Math.min(limit, items.length);
-  for (let w = 0; w < n; w++) workers.push(worker());
-  await Promise.all(workers);
-  return results;
+async function getAllResources() {
+  let allResources = [];
+  let cursor = null;
+  let pages = 0;
+
+  do {
+    const result = await withTimeout(cloudinary.api.resources({
+      type: 'upload',
+      max_results: 500,
+      next_cursor: cursor
+    }), 8000);
+    allResources = allResources.concat(result.resources || []);
+    cursor = result.next_cursor;
+    pages++;
+    console.log('  Page ' + pages + ': ' + allResources.length + ' resources');
+  } while (cursor && pages < 20);
+
+  return allResources;
 }
 
 async function getAlbums() {
@@ -65,41 +68,39 @@ async function getAlbums() {
   if (albumsPending) return albumsPending;
 
   try {
-    console.log('Fetching album list from Cloudinary folders...');
-    albumsPending = (async () => {
-      // 列顶层 folder（即相册），替代全量拉取
-      const folderResult = await withTimeout(cloudinary.api.sub_folders(''), 8000);
-      const folders = (folderResult.folders || []).map(f => f.name).filter(Boolean);
+    console.log('Fetching all resources from Cloudinary...');
+    albumsPending = getAllResources();
+    const resources = await albumsPending;
 
-      // 并发池（一次 8 个）查每个相册的封面（最新一张）+ 照片数（total_count）
-      const albums = await mapLimit(folders, 8, async (folder) => {
-        try {
-          const res = await withTimeout(cloudinary.search
-            .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
-            .sort_by('created_at', 'desc')
-            .max_results(1)
-            .execute(), 8000);
-          const cover = (res.resources || [])[0];
-          return {
-            folderName: folder,
-            date: folder,
-            title: folder,
-            url: folder,
-            coverImage: cover
-              ? `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${cover.version ? '/v' + cover.version : ''}/${cover.public_id}.${cover.format}`
-              : '',
-            count: res.total_count || 0
-          };
-        } catch (e) {
-          console.warn('Folder query failed:', folder, e.message);
-          return null;
-        }
+    const folderMap = new Map();
+
+    resources.forEach(resource => {
+      const folder = resource.asset_folder || resource.folder || '';
+      if (!folder) return;
+
+      if (!folderMap.has(folder)) {
+        folderMap.set(folder, { folderName: folder, images: [] });
+      }
+
+      folderMap.get(folder).images.push({
+        url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${resource.version ? '/v' + resource.version : ''}/${resource.public_id}.${resource.format}`,
+        filename: resource.display_name || (resource.public_id || '').split('/').pop(),
+        width: resource.width,
+        height: resource.height
       });
+    });
 
-      return albums.filter(Boolean).sort((a, b) => b.folderName.localeCompare(a.folderName));
-    })();
+    const result = Array.from(folderMap.values())
+      .filter(a => a.folderName)
+      .sort((a, b) => b.folderName.localeCompare(a.folderName))
+      .map(a => ({
+        ...a,
+        date: a.folderName,
+        title: a.folderName,
+        coverImage: a.images[0]?.url || '',
+        url: a.folderName
+      }));
 
-    const result = await albumsPending;
     albumsCache = result;
     albumsCacheTime = Date.now();
     return result;
@@ -120,28 +121,25 @@ function parseExif(meta) {
 }
 
 async function getAlbum(folder) {
-  // EXIF 元数据与照片列表并行拉取，EXIF 用短超时，拿不到就降级（不阻塞照片返回）
-  const metadataPromise = (async () => {
-    try {
-      const searchPromise = cloudinary.search
-        .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
-        .sort_by('created_at', 'asc')
-        .max_results(500)
-        .with_field('image_metadata')
-        .execute();
-      const searchResult = await Promise.race([
-        searchPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-      ]);
-      const map = new Map();
-      (searchResult.resources || []).forEach(r => {
-        map.set(r.public_id, parseExif(r.image_metadata));
-      });
-      return map;
-    } catch (e) {
-      return new Map();
-    }
-  })();
+  // Try Search API for metadata (5s timeout), fall back to Admin API if unavailable
+  let metadataMap = new Map();
+  try {
+    const searchPromise = cloudinary.search
+      .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`) 
+      .sort_by('created_at', 'asc')
+      .max_results(500)
+      .with_field('image_metadata')
+      .execute();
+    const searchResult = await Promise.race([
+      searchPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+    ]);
+    (searchResult.resources || []).forEach(r => {
+      metadataMap.set(r.public_id, parseExif(r.image_metadata));
+    });
+  } catch (e) {
+    // Search API unavailable, metadata skipped
+  }
 
   // Use Admin API for fast resource listing
   const result = await withTimeout(cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 }), 8000);
@@ -149,8 +147,6 @@ async function getAlbum(folder) {
 
   // Sort by created_at ascending (Admin API doesn't support custom sort)
   resources.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
-
-  const metadataMap = await metadataPromise;
 
   return resources.map(r => ({
     url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${r.version ? '/v' + r.version : ''}/${r.public_id}.${r.format}`,
