@@ -20,7 +20,7 @@
 ## 功能特性
 
 - 📷 **Cloudinary 图床** — 照片传上 Cloudinary，网站按文件夹自动生成相册
-- 🎞️ **全屏视频 Hero** — 多段压缩 WebM 视频循环自动播放，16:9 无裁切铺满首屏，沉浸式夜境氛围
+- ✨ **氛围首页** — 暖橘光晕 + 标题主视觉，卡片进入视口错落入场，沉浸式夜境氛围
 - 🖼️ **专业图片查看器** — 点击照片全屏浏览，支持键盘 ← →、鼠标滚轮缩放、双指捏合、双击放大、拖拽平移、滑动手势
 - 📱 **全端适配** — 电脑、平板、手机都能完美显示，手机端单独优化（大触摸按钮、EXIF 常显）
 - 🌙 **固定深色主题** — 固定暗色沉浸式风格，iOS 风格毛玻璃效果
@@ -30,7 +30,7 @@
 - 📑 **分页浏览** — 相册和照片都支持分页，翻页状态回退自动恢复
 - 🚀 **一键部署** — 点击按钮即可部署到 Netlify，无需写代码
 - 🎨 **彩蛋交互** — 点击「定格美好」触发地震/快门特效、点击年份撒卡片彩纸、点击标语绽放星光
-- 🧩 **PWA 支持** — 可安装到手机桌面，类原生体验
+- 🧩 **可添加到主屏** — 提供 Web App Manifest，可安装到手机桌面
 - ✏️ **完全可配置** — 修改 `config.js` 即可自定义站点名称、标语、底部社交链接
 - 🆓 **开源免费** — MIT 协议，自由使用、二次开发
 
@@ -158,37 +158,6 @@ npm run build
 
 ---
 
-## Hero 视频优化
-
-首页首屏会循环播放多段 Hero 视频。为了兼顾画质与加载速度，视频统一压缩为 **WebM（VP9 / 1080p / CRF 26 / 无声，每段 8 秒）**，存于 `static/video/`，构建时由 `.eleventy.js` 透传复制到 `_site`。
-
-> ⚠️ **体积提醒**
->
-> 本项目自带 **117 段视频、合计约 547MB**，会影响两件事：
->
-> 1. **仓库 clone 很慢** —— 想学习代码的人第一步就要拖 547MB；
-> 2. **Netlify 免费版月流量约 100GB** —— 而 Hero 视频是**循环播放**的，访客停留 5 分钟约消耗 175MB，页面一直挂着的话 1 小时能吃掉 2GB。**不到 50 个挂机访客就可能把整月额度用光**，超限后站点会被暂停。
->
-> **建议**：如果你只是想要一个能跑的相册站，先把 `static/video/` 清空或只留少数几段——**视频为空时首屏会自动降级，不影响其他任何功能**。
->
-> 想保留氛围又控制流量，可以只留体积小的段。本项目的体积分布很不均匀：**17 段（>8MB）就占了全部体积的 49%，而 44 段（≤2MB）加起来只有 50MB**。只保留后者的话，同样 5 分钟的会话流量能降到 43MB。
-
-### 重新压缩视频
-
-如需更换视频源或重新压缩，把 MP4 放进 `static/video/` 后运行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/compress-videos.ps1
-```
-
-脚本会并行（每次 4 个）把 `static/video/*.mp4` 转成 WebM，覆盖同名 `.webm`；已存在且非空的 `.webm` 会被自动跳过（想强制重压就先删掉它）。参数写在脚本开头：`$crf = 26`、`$duration = 8`，缩放比例在 `-vf scale=1920:1080`。
-
-> ⚠️ **请自行留存源 MP4**。一旦只剩 WebM，再次压缩就变成**二次有损压缩**——原版的压缩伪影本身也占码率，体积降幅会大打折扣（实测 CRF 26 → 34 只能降约 39%）。
->
-> 另注：GitHub 单文件硬上限 100MB，建议单文件控制在 50MB 以内，避免 push 被拒或仓库过大。
-
----
-
 ## Cloudinary 配置
 
 1. 注册 [Cloudinary](https://cloudinary.com)
@@ -204,33 +173,25 @@ powershell -ExecutionPolicy Bypass -File scripts/compress-videos.ps1
 ```
 photography-diary/
 ├── config.js            # 网站配置（名称、标题、社交链接）
-├── index.njk            # 首页模板（视频 Hero、相册网格、分页、彩蛋）
+├── index.njk            # 首页模板（Hero、相册网格、分页、彩蛋）
 ├── album.njk            # 相册详情页模板（照片网格、灯箱查看器）
-├── exhibition.njk       # 3D 摄影展览页（Three.js，当前 301 跳转到首页）
 ├── donate.html          # 打赏页
-├── manifest.njk         # PWA 清单（可安装到桌面）
+├── manifest.njk         # Web App 清单（可添加到主屏）
 ├── favicon.svg          # 站点图标
 ├── _data/
 │   └── site.js          # 读取 config.js 供模板使用
 ├── _includes/
 │   └── layouts/         # Eleventy 布局目录
 ├── .eleventy.js         # Eleventy 构建配置（含 static 静态资源拷贝）
-├── static/
-│   ├── video/           # 首屏 Hero 视频（WebM，段数可自定义）
-│   ├── exhibition.css   # 3D 展览页样式
-│   ├── exhibition.js    # 3D 展览页脚本
-│   └── ...              # 其他静态资源
+├── static/              # 静态资源（当前为空，预留）
 ├── netlify/
 │   └── functions/       # API 接口（保护密钥）
 │       ├── albums.js    # 相册列表 API
 │       └── album.js     # 单个相册详情 API
 ├── scripts/
 │   ├── local-api.js             # 本地开发 API 服务器
-│   ├── compress-videos.ps1      # 视频批量压缩（MP4 → WebM）
 │   ├── compress-photos.js       # 照片压缩
 │   └── upload-to-cloudinary.js  # 批量上传照片到 Cloudinary
-├── demo/                # 演示页
-├── server.js            # 纯静态预览服务器（端口 8080，仅服务 _site/，不含 API 代理）
 ├── .env                 # 环境变量（不上传）
 ├── .env.example         # 环境变量模板
 ├── netlify.toml         # Netlify 部署配置（路由重定向 + 安全响应头）
@@ -268,7 +229,7 @@ photography-diary/
   status = 200
 ```
 
-同一个文件里还包含：`/api/*` 到 Netlify Functions 的转发、`/exhibition` 到首页的 301 跳转，以及全站的 `X-Frame-Options`、`X-Content-Type-Options` 等安全响应头。
+同一个文件里还包含：`/api/*` 到 Netlify Functions 的转发，以及全站的 `X-Frame-Options`、`X-Content-Type-Options` 等安全响应头。
 
 > 💡 也可以用 Netlify 传统的 `_redirects` 文件，但本项目的构建目录是 `_site/`，需要额外在 `.eleventy.js` 里加一行 `addPassthroughCopy("_redirects")` 才会被复制进去——所以这里统一用 `netlify.toml` 更省事。
 

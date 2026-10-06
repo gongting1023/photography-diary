@@ -242,8 +242,9 @@
     let totalPages = 1;
     var isLoading = false;
 
-    async function loadAlbum() {
+    async function loadAlbum(retries) {
       if (isLoading) return;
+      if (retries === undefined) retries = 0;
       isLoading = true;
       loadingState.style.display = 'block';
       errorState.style.display = 'none';
@@ -307,7 +308,11 @@
         }
       } catch (error) {
         console.error('Load error:', error);
-        if (!images.length) {
+        if (retries < 2) {
+          var delay = (retries + 1) * 2000;
+          loadingState.querySelector('.loading-tagline').textContent = '光影正在赶来的路上...';
+          setTimeout(function(){ loadAlbum(retries + 1); }, delay);
+        } else {
           loadingState.style.display = 'none';
           errorState.querySelector('p').textContent = '加载失败';
           errorState.style.display = 'block';
@@ -346,7 +351,7 @@
 
     function renderPage(page) {
       currentPage = page;
-      var oldPreload = document.querySelectorAll('link[data-preload]');
+      var oldPreload = document.querySelectorAll('link[data-preload="page"]');
       for (var i = 0; i < oldPreload.length; i++) oldPreload[i].remove();
       grid.innerHTML = '';
       const start = (page - 1) * PER_PAGE;
@@ -415,7 +420,7 @@
       var start = page * PER_PAGE;
       var end = Math.min(start + PER_PAGE, images.length);
       for (var i = start; i < end; i++) {
-        var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = images[i].url; l.dataset.preload = ''; document.head.appendChild(l);
+        var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = images[i].url; l.dataset.preload = 'page'; document.head.appendChild(l);
       }
     }
 
@@ -604,6 +609,7 @@
     function updateLightbox() {
       resetZoom();
       var url = images[currentIndex].url;
+      document.getElementById('lb-img').alt = images[currentIndex].filename || '';
       setAmbient(url);
       revealPhoto(url);
 
@@ -630,7 +636,7 @@
     }
 
     function preloadAdjacent() {
-      var old = document.querySelectorAll('link[data-preload]');
+      var old = document.querySelectorAll('link[data-preload="lightbox"]');
       for (var i = 0; i < old.length; i++) old[i].remove();
       var preloadCount = 2;
       for (var d = 1; d <= preloadCount; d++) {
@@ -641,7 +647,7 @@
           link.rel = 'preload';
           link.as = 'image';
           link.href = getLightboxUrl(images[idx].url);
-          link.dataset.preload = '';
+          link.dataset.preload = 'lightbox';
           document.head.appendChild(link);
         });
       }
