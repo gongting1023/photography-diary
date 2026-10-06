@@ -4,7 +4,6 @@
  * 用于获取单个相册的详细信息
  */
 
-require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({

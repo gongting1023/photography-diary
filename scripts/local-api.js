@@ -38,6 +38,23 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 }
 
+// 并发池：限制同时发起的请求数，避免触发 Cloudinary 免费版限流（429）
+async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await fn(items[idx], idx);
+    }
+  }
+  const workers = [];
+  const n = Math.min(limit, items.length);
+  for (let w = 0; w < n; w++) workers.push(worker());
+  await Promise.all(workers);
+  return results;
+}
+
 async function getAlbums() {
   // Return cached data if fresh
   if (albumsCache && Date.now() - albumsCacheTime < CACHE_TTL) {
@@ -54,8 +71,8 @@ async function getAlbums() {
       const folderResult = await withTimeout(cloudinary.api.sub_folders(''), 8000);
       const folders = (folderResult.folders || []).map(f => f.name).filter(Boolean);
 
-      // 并行查每个相册的封面（最新一张）+ 照片数（total_count）
-      const albums = await Promise.all(folders.map(async (folder) => {
+      // 并发池（一次 8 个）查每个相册的封面（最新一张）+ 照片数（total_count）
+      const albums = await mapLimit(folders, 8, async (folder) => {
         try {
           const res = await withTimeout(cloudinary.search
             .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
@@ -77,7 +94,7 @@ async function getAlbums() {
           console.warn('Folder query failed:', folder, e.message);
           return null;
         }
-      }));
+      });
 
       return albums.filter(Boolean).sort((a, b) => b.folderName.localeCompare(a.folderName));
     })();
