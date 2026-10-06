@@ -94,7 +94,7 @@ exports.handler = async function(event, context) {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300',
-        'Netlify-CDN-Cache-Control': 'public, max-age=300, stale-while-revalidate=3600'
+        'Netlify-CDN-Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
       },
       body: JSON.stringify({ folder, images, total: images.length })
     };
