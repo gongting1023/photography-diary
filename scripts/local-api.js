@@ -38,26 +38,6 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 }
 
-async function getAllResources() {
-  let allResources = [];
-  let cursor = null;
-  let pages = 0;
-
-  do {
-    const result = await withTimeout(cloudinary.api.resources({
-      type: 'upload',
-      max_results: 500,
-      next_cursor: cursor
-    }), 8000);
-    allResources = allResources.concat(result.resources || []);
-    cursor = result.next_cursor;
-    pages++;
-    console.log('  Page ' + pages + ': ' + allResources.length + ' resources');
-  } while (cursor && pages < 20);
-
-  return allResources;
-}
-
 async function getAlbums() {
   // Return cached data if fresh
   if (albumsCache && Date.now() - albumsCacheTime < CACHE_TTL) {
@@ -68,39 +48,41 @@ async function getAlbums() {
   if (albumsPending) return albumsPending;
 
   try {
-    console.log('Fetching all resources from Cloudinary...');
-    albumsPending = getAllResources();
-    const resources = await albumsPending;
+    console.log('Fetching album list from Cloudinary folders...');
+    albumsPending = (async () => {
+      // 列顶层 folder（即相册），替代全量拉取
+      const folderResult = await withTimeout(cloudinary.api.sub_folders(''), 8000);
+      const folders = (folderResult.folders || []).map(f => f.name).filter(Boolean);
 
-    const folderMap = new Map();
-
-    resources.forEach(resource => {
-      const folder = resource.asset_folder || resource.folder || '';
-      if (!folder) return;
-
-      if (!folderMap.has(folder)) {
-        folderMap.set(folder, { folderName: folder, images: [] });
-      }
-
-      folderMap.get(folder).images.push({
-        url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${resource.version ? '/v' + resource.version : ''}/${resource.public_id}.${resource.format}`,
-        filename: resource.display_name || (resource.public_id || '').split('/').pop(),
-        width: resource.width,
-        height: resource.height
-      });
-    });
-
-    const result = Array.from(folderMap.values())
-      .filter(a => a.folderName)
-      .sort((a, b) => b.folderName.localeCompare(a.folderName))
-      .map(a => ({
-        ...a,
-        date: a.folderName,
-        title: a.folderName,
-        coverImage: a.images[0]?.url || '',
-        url: a.folderName
+      // 并行查每个相册的封面（最新一张）+ 照片数（total_count）
+      const albums = await Promise.all(folders.map(async (folder) => {
+        try {
+          const res = await withTimeout(cloudinary.search
+            .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
+            .sort_by('created_at', 'desc')
+            .max_results(1)
+            .execute(), 8000);
+          const cover = (res.resources || [])[0];
+          return {
+            folderName: folder,
+            date: folder,
+            title: folder,
+            url: folder,
+            coverImage: cover
+              ? `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${cover.version ? '/v' + cover.version : ''}/${cover.public_id}.${cover.format}`
+              : '',
+            count: res.total_count || 0
+          };
+        } catch (e) {
+          console.warn('Folder query failed:', folder, e.message);
+          return null;
+        }
       }));
 
+      return albums.filter(Boolean).sort((a, b) => b.folderName.localeCompare(a.folderName));
+    })();
+
+    const result = await albumsPending;
     albumsCache = result;
     albumsCacheTime = Date.now();
     return result;

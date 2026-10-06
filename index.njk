@@ -318,13 +318,8 @@
         let _cv = album.coverImage;
         if (_cv && _cv !== 'undefined' && _cv !== 'null' && typeof _cv === 'string' && _cv.startsWith('http')) {
           coverUrl = _cv;
-        } else if (album.images && album.images[0] && album.images[0].url) {
-          let _u = album.images[0].url;
-          if (_u !== 'undefined' && _u !== 'null' && typeof _u === 'string' && _u.startsWith('http')) {
-            coverUrl = _u;
-          }
         }
-        let photoCount = album.images ? album.images.length : 0;
+        let photoCount = album.count || 0;
         let albumDate = album.date || '';
         let albumUrl = album.url || '';
         let isFirst = i === start;
@@ -431,7 +426,6 @@
       var end = Math.min(start + PER_PAGE, albums.length);
       for (var i = start; i < end; i++) {
         var u = albums[i].coverImage;
-        if (!u || u === 'undefined' || u === 'null') u = albums[i].images && albums[i].images[0] && albums[i].images[0].url;
         if (u && u !== 'undefined' && u !== 'null' && u.startsWith && u.startsWith('http')) {
           var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image';
           l.href = u.replace('f_auto,q_auto', 'w_400,f_auto,q_auto:eco');

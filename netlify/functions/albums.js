@@ -9,62 +9,43 @@ cloudinary.config({
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 
-async function getAllResources() {
-  let allResources = [];
-  let cursor = null;
-  let pages = 0;
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+}
 
-  do {
-    let query = cloudinary.search
-      .expression('resource_type:image')
-      .sort_by('created_at', 'desc')
-      .max_results(500);
-
-    if (cursor) query = query.next_cursor(cursor);
-
-    const result = await Promise.race([
-      query.execute(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-    ]);
-    allResources = allResources.concat(result.resources || []);
-    cursor = result.next_cursor;
-    pages++;
-
-  } while (cursor && pages < 20);
-
-  return allResources;
+function coverUrl(r) {
+  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${r.version ? '/v' + r.version : ''}/${r.public_id}.${r.format}`;
 }
 
 async function getAlbums() {
-  const resources = await getAllResources();
-  const folderMap = new Map();
+  // 1. 列顶层 folder（即相册），替代全量拉取
+  const folderResult = await withTimeout(cloudinary.api.sub_folders(''), 8000);
+  const folders = (folderResult.folders || []).map(f => f.name).filter(Boolean);
 
-  resources.forEach(resource => {
-    const folder = resource.asset_folder || resource.folder || '';
-    if (!folder) return;
-
-    if (!folderMap.has(folder)) {
-      folderMap.set(folder, { folderName: folder, images: [] });
+  // 2. 并行查每个相册的封面（最新一张）+ 照片数（total_count），不再下载全部照片
+  const albums = await Promise.all(folders.map(async (folder) => {
+    try {
+      const res = await withTimeout(cloudinary.search
+        .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
+        .sort_by('created_at', 'desc')
+        .max_results(1)
+        .execute(), 8000);
+      const cover = (res.resources || [])[0];
+      return {
+        folderName: folder,
+        date: folder,
+        title: folder,
+        url: folder,
+        coverImage: cover ? coverUrl(cover) : '',
+        count: res.total_count || 0
+      };
+    } catch (e) {
+      console.warn('Folder query failed:', folder, e.message);
+      return null;
     }
+  }));
 
-      folderMap.get(folder).images.push({
-        url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${resource.version ? '/v' + resource.version : ''}/${resource.public_id}.${resource.format}`,
-        filename: resource.display_name || (resource.public_id || '').split('/').pop(),
-      width: resource.width,
-      height: resource.height
-    });
-  });
-
-  return Array.from(folderMap.values())
-    .filter(a => a.folderName)
-    .sort((a, b) => b.folderName.localeCompare(a.folderName))
-    .map(a => ({
-      ...a,
-      date: a.folderName,
-      title: a.folderName,
-      coverImage: a.images[0]?.url || '',
-      url: a.folderName
-    }));
+  return albums.filter(Boolean).sort((a, b) => b.folderName.localeCompare(a.folderName));
 }
 
 exports.handler = async function(event, context) {
@@ -79,7 +60,8 @@ exports.handler = async function(event, context) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=300'
+        'Cache-Control': 'public, max-age=300',
+        'Netlify-CDN-Cache-Control': 'public, max-age=300, stale-while-revalidate=3600'
       },
       body: JSON.stringify({ albums, total: albums.length })
     };
