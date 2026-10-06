@@ -47,25 +47,31 @@ exports.handler = async function(event, context) {
       return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
     }
 
-    // Try Search API for metadata (optional), then always use Admin API for reliable resource listing
-    let metadataMap = new Map();
-    try {
-      const metaResult = await withTimeout(cloudinary.search
-        .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`) 
-        .max_results(500)
-        .with_field('image_metadata')
-        .execute(), 5000);
-      (metaResult.resources || []).forEach(r => {
-        metadataMap.set(r.public_id, parseExif(r.image_metadata));
-      });
-    } catch (e) {
-      console.warn('Search API metadata fetch failed:', e.message);
-    }
+    // EXIF 元数据与照片列表并行拉取，EXIF 用短超时，拿不到就降级（不阻塞照片返回）
+    const metadataPromise = (async () => {
+      try {
+        const metaResult = await withTimeout(cloudinary.search
+          .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
+          .max_results(500)
+          .with_field('image_metadata')
+          .execute(), 2000);
+        const map = new Map();
+        (metaResult.resources || []).forEach(r => {
+          map.set(r.public_id, parseExif(r.image_metadata));
+        });
+        return map;
+      } catch (e) {
+        console.warn('Search API metadata fetch failed:', e.message);
+        return new Map();
+      }
+    })();
 
     const result = await withTimeout(cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 }), 8000);
     const resources = result.resources || [];
 
     resources.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
+
+    const metadataMap = await metadataPromise;
 
     const images = resources.map(resource => {
       const originalFilename = resource.display_name || (resource.public_id || '').split('/').pop();

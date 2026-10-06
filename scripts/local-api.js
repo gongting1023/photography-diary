@@ -103,25 +103,28 @@ function parseExif(meta) {
 }
 
 async function getAlbum(folder) {
-  // Try Search API for metadata (5s timeout), fall back to Admin API if unavailable
-  let metadataMap = new Map();
-  try {
-    const searchPromise = cloudinary.search
-      .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`) 
-      .sort_by('created_at', 'asc')
-      .max_results(500)
-      .with_field('image_metadata')
-      .execute();
-    const searchResult = await Promise.race([
-      searchPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-    ]);
-    (searchResult.resources || []).forEach(r => {
-      metadataMap.set(r.public_id, parseExif(r.image_metadata));
-    });
-  } catch (e) {
-    // Search API unavailable, metadata skipped
-  }
+  // EXIF 元数据与照片列表并行拉取，EXIF 用短超时，拿不到就降级（不阻塞照片返回）
+  const metadataPromise = (async () => {
+    try {
+      const searchPromise = cloudinary.search
+        .expression(`resource_type:image AND asset_folder:"${folder.replace(/"/g, '\\"')}"`)
+        .sort_by('created_at', 'asc')
+        .max_results(500)
+        .with_field('image_metadata')
+        .execute();
+      const searchResult = await Promise.race([
+        searchPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+      ]);
+      const map = new Map();
+      (searchResult.resources || []).forEach(r => {
+        map.set(r.public_id, parseExif(r.image_metadata));
+      });
+      return map;
+    } catch (e) {
+      return new Map();
+    }
+  })();
 
   // Use Admin API for fast resource listing
   const result = await withTimeout(cloudinary.api.resources_by_asset_folder(folder, { max_results: 500 }), 8000);
@@ -129,6 +132,8 @@ async function getAlbum(folder) {
 
   // Sort by created_at ascending (Admin API doesn't support custom sort)
   resources.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
+
+  const metadataMap = await metadataPromise;
 
   return resources.map(r => ({
     url: `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto${r.version ? '/v' + r.version : ''}/${r.public_id}.${r.format}`,
