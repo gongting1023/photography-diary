@@ -55,9 +55,6 @@
     .album-info{padding:18px 4px 4px;display:flex;align-items:center}
     .album-date{flex:1;text-align:center;font-size:1.05rem;font-weight:600;letter-spacing:-0.01em;color:var(--text);transition:color .3s ease}
     .album:hover .album-date{color:var(--accent)}
-    .album-count{color:var(--muted);font-size:.85rem;display:flex;align-items:center;gap:4px;transition:color .2s}
-    .album:hover .album-count{color:var(--accent)}
-    .album-count svg{width:14px;height:14px}
     .pagination{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:80px;padding:20px;flex-wrap:wrap}
     .pagination button{min-width:36px;height:36px;background:transparent;border:none;color:var(--muted);padding:0 12px;border-radius:8px;cursor:pointer;transition:all .2s;font-size:.9rem;font-weight:500;display:flex;align-items:center;justify-content:center}
     .pagination button:hover:not(:disabled){color:var(--text);background:var(--card)}
@@ -318,7 +315,6 @@
         if (_cv && _cv !== 'undefined' && _cv !== 'null' && typeof _cv === 'string' && _cv.startsWith('http')) {
           coverUrl = _cv;
         }
-        let photoCount = album.count || 0;
         let albumDate = album.date || '';
         let albumUrl = album.url || '';
         let isFirst = i === start;
@@ -350,7 +346,7 @@
 
         let info = document.createElement('div');
         info.className = 'album-info';
-        info.innerHTML = '<span class="album-date">' + escapeHtml(albumDate) + '</span><span class="album-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + photoCount + '</span>';
+        info.innerHTML = '<span class="album-date">' + escapeHtml(albumDate) + '</span>';
 
         article.appendChild(cover);
         article.appendChild(info);
