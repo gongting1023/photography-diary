@@ -24,7 +24,8 @@ exports.handler = async function(event, context) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing folder parameter' }) };
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}(\/[\w-]+)*$/.test(folder)) {
+  // 允许任意正常相册名（英数、中文、连字符、嵌套斜杠），仅拦截会破坏 Cloudinary 查询表达式的字符
+  if (!/^[\w\-\/\u4e00-\u9fa5]+$/.test(folder)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid folder format' }) };
   }
 
