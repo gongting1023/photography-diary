@@ -115,18 +115,26 @@ CLOUDINARY_API_SECRET=你的API Secret
 
 ```js
 module.exports = {
-  siteName: '龚仔的摄影日记',           // 网站名称
-  siteTitle: '记录生活，定格美好',        // 标题/口号
-  siteDescription: '用镜头捕捉每一个值得珍藏的瞬间', // 描述
+  siteName: '你的摄影日记',              // 网站名称（页面标题与底部栏都用它）
+  heroTitle: {                        // 首屏大标题（拆两段，各自绑着彩蛋）
+    first: '记录生活',
+    second: '定格美好'
+  },
+  siteDescription: '用镜头捕捉每一个值得珍藏的瞬间', // 描述（PWA 清单用）
   footer: {
+    year: 2026,                        // 底部栏版权年份
+    moment: '定格美妙瞬间',              // 底部栏口号
+    // brand 决定链接样式：'xiaohongshu' 红字 | 'douyin' 黑底白字 | 其他 普通链接
     social: [
       { label: '小红书', url: 'https://...', brand: 'xiaohongshu' },
       { label: '抖音', url: 'https://...', brand: 'douyin' },
-      { label: '邮箱：你的邮箱', url: 'mailto:...' }
+      { label: '我的小窝', url: 'https://...', brand: 'link' }
     ]
   }
 };
 ```
+
+> 💡 **复用给他人建站时**：只需修改 `config.js`（站名/首屏标题/底部栏）和 `.env`（Cloudinary 密钥）两个文件，页面上的站名、大标题与底部栏会自动跟着变，无需再动模板。素材类可另行替换：`favicon.svg`（站点图标）、`donate.html` 里的收款码占位框。
 
 **第五步：构建静态文件**
 

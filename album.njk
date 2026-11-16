@@ -211,13 +211,12 @@
   </div>
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-copy"><span class="egg" id="egg-year">© 2026</span> <span class="egg" id="egg-name">龚仔的摄影日记</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">定格美妙瞬间</span></div>
+      <div class="footer-copy"><span class="egg" id="egg-year">© {{ site.footer.year }}</span> <span class="egg" id="egg-name">{{ site.siteName }}</span> <span class="contact-sep">|</span> <span class="egg" id="egg-moment">{{ site.footer.moment }}</span></div>
       <div class="footer-contact">
-        <a class="footer-link footer-link--red" href="https://xhslink.com/m/8MA6NoHQesz" target="_blank" rel="noopener">小红书</a>
-        <span class="contact-sep">·</span>
-        <a class="footer-link--douyin" href="https://v.douyin.com/owyNGXrRXrA/" target="_blank" rel="noopener">抖音</a>
-        <span class="contact-sep">·</span>
-        <a class="footer-link" href="https://gznest.netlify.app/" target="_blank" rel="noopener">龚仔的小窝</a>
+        {%- for s in site.footer.social %}
+        {%- if not loop.first %}<span class="contact-sep">·</span>{% endif %}
+        <a class="{% if s.brand == 'xiaohongshu' %}footer-link footer-link--red{% elif s.brand == 'douyin' %}footer-link--douyin{% else %}footer-link{% endif %}" href="{{ s.url }}" target="_blank" rel="noopener">{{ s.label }}</a>
+        {%- endfor %}
       </div>
     </div>
   </footer>

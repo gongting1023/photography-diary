@@ -3,9 +3,9 @@ const fs = require('fs');
 
 const defaults = {
   siteName: '摄影日记',
-  siteTitle: '记录生活',
+  heroTitle: { first: '记录生活', second: '定格美好' },
   siteDescription: '用镜头捕捉每一个瞬间',
-  footer: { html: '© 2026' },
+  footer: { year: new Date().getFullYear(), moment: '', social: [] },
   contacts: {}
 };
 
